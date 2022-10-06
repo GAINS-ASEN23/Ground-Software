@@ -1,1 +1,3 @@
-# groundSoftware
+# Ground Software
+
+Lead: Cannon Palmer

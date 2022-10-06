@@ -1,7 +1,7 @@
+#include <iostream>
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
-#include <iostream>
 
 
 // Create functions to outline what happens in window

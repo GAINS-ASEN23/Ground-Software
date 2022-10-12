@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.3.32922.545
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GUI", "groundSoftware.vcxproj", "{D91CD010-205F-4E2E-BA79-96422388E784}"
+	ProjectSection(ProjectDependencies) = postProject
+		{553E41F1-F46B-4A6B-91C5-367E000025B8} = {553E41F1-F46B-4A6B-91C5-367E000025B8}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BACKEND", "BACKEND\BACKEND.vcxproj", "{553E41F1-F46B-4A6B-91C5-367E000025B8}"
 EndProject

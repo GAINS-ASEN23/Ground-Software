@@ -9,6 +9,8 @@
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+// Create the Shader Sources
+// -------------------------
 const char* vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"
 "void main()\n"
@@ -29,3 +31,5 @@ const char* fragmentShader2Source = "#version 330 core\n"
 "{\n"
 "   FragColor = vec4(0.8f, 0.8f, 0.0f, 1.0f);\n"
 "}\n\0";
+
+// -------------------------

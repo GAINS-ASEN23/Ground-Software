@@ -1,3 +1,9 @@
+/* MAIN FRONTEND FILE
+* GAINS Senior Project Capstone Ground Software GUI Frontend
+* Authors: Derek Popich, Cannon Palmer, Brian Trybus, Alfredo Restrepo
+* Purpose: This is the main file for the Orbital Trajectory Estimation Software
+*/
+
 #include <iostream>
 
 #include <glad/glad.h>

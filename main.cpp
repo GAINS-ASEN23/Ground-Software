@@ -157,27 +157,7 @@ int main()
     glDeleteShader(vertexShader2);
     glDeleteShader(fragmentShader2);
 
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    /*float vertices[] = { //Draw our first triangle
-        -0.5f, -0.5f, 0.0f, // left  
-         0.5f, -0.5f, 0.0f, // right 
-         0.0f,  0.5f, 0.0f,  // top   
-         //-0.5f,  0.5f, 0.0f,  // top  
-         //0.5f,  0.5f, 0.0f  // top  
-    };*/
-
-    /*float vertices[] = { // draw a rectangle
-        // first triangle
-         0.5f,  0.5f, 0.0f,  // top right
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f,  0.5f, 0.0f,  // top left 
-        // second triangle
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f   // top left
-    };*/
-
+    // Set vertices for some triangles
     float triangle1[] = {
         // first triangle
         -0.5f,  0.5f, 0.0f,  // top left
@@ -202,29 +182,12 @@ int main()
         1, 2, 3    // second triangle
     };*/
 
-    /*unsigned int VBO, VAO; //creates only 1 VBO and VAO
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);*/
-
     unsigned int VBO[2], VAO[2]; // creates 2 VBOs and VAOs
     glGenVertexArrays(2, VAO);
     glGenBuffers(2, VBO);
 
     //unsigned int EBO;
     //glGenBuffers(1, &EBO);
-
-    /*// ..:: Initialization code ::.. //includes EBO
-    // 1. bind Vertex Array Object
-    glBindVertexArray(VAO);
-    // 2. copy our vertices array in a vertex buffer for OpenGL to use
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // 3. copy our index array in a element buffer for OpenGL to use
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    // 4. then set the vertex attributes pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);*/
 
     // Initialize triangle 1
     glBindVertexArray(VAO[0]);
@@ -239,7 +202,6 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangle2), triangle2, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -260,11 +222,6 @@ int main()
 
         // choose the shader program to use
         glUseProgram(shaderProgram);
-
-        /*// draw our first triangle
-        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glDrawArrays(GL_TRIANGLES, 0, 6); //3rd input is the number of vertices to draw 
-        // glBindVertexArray(0); // no need to unbind it every time */
 
         /*// Draw the rectangles with EBOs
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // enables wireframe mode
@@ -291,11 +248,7 @@ int main()
         glfwPollEvents();
     }
 
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
-    /*glDeleteVertexArrays(1, &VAO); // deletes if only one VAO and VBO
-    glDeleteBuffers(1, &VBO);*/
-
+    // deallocate the VAOs and VBOs
     glDeleteVertexArrays(2, VAO); // deletes 2 VAOs and VBOs
     glDeleteBuffers(2, VBO);
 

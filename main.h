@@ -29,5 +29,6 @@ const char* fragmentShaderSource = "#version 330 core\n"
 "{\n"
 "   FragColor = vec4(chosenColor, 1.0);\n"
 "}\n\0";
-
 // -------------------------
+
+

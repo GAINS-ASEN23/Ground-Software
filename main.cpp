@@ -10,6 +10,8 @@
 #include <GLFW/glfw3.h>
 #include <main.h>
 
+#include <shader.h>
+
 
 // Create functions to outline what happens in window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -56,46 +58,8 @@ int main()
         return -1;
     }
 
-    // build and compile our 1st shader program
-    // ------------------------------------
-    // vertex shader
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    // check for shader compile errors
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    // fragment shader
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-    // check for shader compile errors
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    // link shaders
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    // check for linking errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    // Generate shader program from the shader class
+    shader shaderProgram(vertexShaderSource, fragmentShaderSource);
 
     // Create triangle definition matrices
     float colorTriangle[] = {
@@ -167,7 +131,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // choose the shader program to use
-        glUseProgram(shaderProgram);
+        shaderProgram.use();
 
         /*// Draw the rectangles with EBOs
         glBindVertexArray(VAO);
@@ -177,16 +141,14 @@ int main()
         // update the uniform color
         float timeValue = glfwGetTime();
         float colorStrength = sin(timeValue) / 2.0f + 0.5f;
-        float vertexColorLocation = glGetUniformLocation(shaderProgram, "brightness");
-        glUniform1f(vertexColorLocation, colorStrength);
+        shaderProgram.setFloat("brightness", colorStrength);
 
         // draw the large triangle
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // enables wireframe mode
         glBindVertexArray(VAO[0]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
         glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw
 
         // draw the small upside down triangle
-        glUniform1f(vertexColorLocation, 1-colorStrength);
+        shaderProgram.setFloat("brightness", 1-colorStrength);
         glBindVertexArray(VAO[1]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
         glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw
 
@@ -199,7 +161,8 @@ int main()
     glDeleteVertexArrays(2, VAO); // deletes 2 VAOs and VBOs
     glDeleteBuffers(2, VBO);
 
-    glDeleteProgram(shaderProgram);
+    // delete the shader program just in caes
+    shaderProgram.~shader();
 
     // Clear all previously allocated GLFW resources
     glfwTerminate();

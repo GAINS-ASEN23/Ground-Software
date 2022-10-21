@@ -12,6 +12,9 @@
 
 #include <shader.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 
 // Create functions to outline what happens in window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -61,6 +64,9 @@ int main()
     // Generate shader program from the shader class
     shader shaderProgram(vertexShaderSource, fragmentShaderSource);
 
+    // Generate shader program with textures from the shader class
+    shader textureShaderProgram(vs_Texture_Source, fs_Texture_Source);
+
     // Create triangle definition matrices
     float colorTriangle[] = {
         // positions         // colors
@@ -76,24 +82,25 @@ int main()
      0.0f,  -0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // bottom
     };
 
-    // EBOs, useful for not needing to declare a vertex multiple times when we make many triangles
-    /*float vertices[] = { //Draw a rectangle - for use with EBOs
-     0.5f,  0.5f, 0.0f,  // top right
-     0.5f, -0.5f, 0.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f,  // bottom left
-    -0.5f,  0.5f, 0.0f   // top left 
-    };*/
-    /*unsigned int indices[] = {  // note that we start from 0!
+    // Gains Loggo
+    float gainsRectangle[] = {
+        // positions           // colors        // texture coords
+    -0.2f, -0.5f, 0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 0.0f, // bottom left
+    -0.2f, 0.5f,  0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f, // top left
+    0.2f,  0.5f,  0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, // top right
+    0.2f, -0.5f,  0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 0.0f // bottom right
+    };
+    unsigned int gainsIndices[] = { 
         0, 1, 3,   // first triangle
         1, 2, 3    // second triangle
-    };*/
+    };
 
-    //unsigned int EBO;
-    //glGenBuffers(1, &EBO);
 
-    unsigned int VBO[2], VAO[2]; // creates 2 VBOs and VAOs
-    glGenVertexArrays(2, VAO);
-    glGenBuffers(2, VBO);
+    // --- Create the Shaders ---
+    unsigned int VBO[3], VAO[3], EBO; // creates 3 VBOs and VAOs, and makes an EBO
+    glGenVertexArrays(3, VAO);
+    glGenBuffers(3, VBO);
+    glGenBuffers(1, &EBO); // EBOs, useful for not needing to declare a vertex multiple times when we make many triangles
 
     // Initialize 1st shader object (large triangle)
     glBindVertexArray(VAO[0]);
@@ -113,12 +120,54 @@ int main()
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float))); // color attribute
     glEnableVertexAttribArray(1);
 
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // Initialize the 3rd shader object (the gains logo)
+    glBindVertexArray(VAO[2]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(gainsRectangle), gainsRectangle, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(gainsIndices), gainsIndices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0); // position attribute
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float))); // color attribute
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    glBindVertexArray(0);
+    // --- Create a texture ---
+    // Import GAINS Image for use as a texture
+    int width, height, nrChannels;
+    //unsigned char* GAINS_Image_data = stbi_load("GAINS_Small_Transparent.png", &width, &height, &nrChannels, 0); // access violation???
+    //unsigned char* GAINS_Image_data = stbi_load("GAINS_Small_Transparent.png", &width, &height, &nrChannels, 0); // access violation???
+    //std::cout << stbi_failure_reason() << std::endl; // vug: can't fopen the image
+    //unsigned char* GAINS_Image_data = stbi_load("GAINS_Small_Transparent.png", &width, &height, &nrChannels, 0);
+    //std::cout << width << std::endl; // bug: this number is becoming negative somehow
+    //std::cout << height << std::endl;
+    //std::cout << nrChannels << std::endl;
+
+    // create the texture
+    unsigned int texture;
+    glGenTextures(1, &texture); // first input is number of textures to generate, 2nd is pointer to texture / texture array
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    // set texture options for wrapping and filters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // can be LINEAR or NEAREST
+
+    // load and generate the texture
+    if (GAINS_Image_data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, GAINS_Image_data); // Inputs: 1st specifies texture target,
+        // 2nd is mipmap level, 3rd is openGL image format (default = RGB), 4th is width, 5th is height, 6th must be 0, 7th is format,
+        // 8th is data type, 9th is the actual image data
+        glGenerateMipmap(GL_TEXTURE_2D); // Mipmaps are very important if we are putting textures on large objects far away
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(GAINS_Image_data); // Frees the image memory now that a texture has been made
 
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -144,13 +193,21 @@ int main()
         shaderProgram.setFloat("brightness", colorStrength);
 
         // draw the large triangle
-        glBindVertexArray(VAO[0]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        glBindVertexArray(VAO[0]); 
         glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw
 
         // draw the small upside down triangle
         shaderProgram.setFloat("brightness", 1-colorStrength);
-        glBindVertexArray(VAO[1]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        glBindVertexArray(VAO[1]); 
         glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw
+
+        //draw the gains logo
+        textureShaderProgram.use();
+        textureShaderProgram.setFloat("brightness", 1);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glBindVertexArray(VAO[2]);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
 
         // Swap buffers and poll for IO events (keys pressed/released, mouse moved etc.) - Move from back buffer to front buffer
         glfwSwapBuffers(window);
@@ -158,8 +215,8 @@ int main()
     }
 
     // deallocate the VAOs and VBOs
-    glDeleteVertexArrays(2, VAO); // deletes 2 VAOs and VBOs
-    glDeleteBuffers(2, VBO);
+    glDeleteVertexArrays(3, VAO); // deletes 2 VAOs and VBOs
+    glDeleteBuffers(3, VBO);
 
     // delete the shader program just in caes
     shaderProgram.~shader();

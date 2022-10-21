@@ -164,6 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="GAINS_Small_Transparent.png" />
+    <Image Include="GAINS_Small_White.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

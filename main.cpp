@@ -85,10 +85,10 @@ int main()
     // Gains Loggo
     float gainsRectangle[] = {
         // positions           // colors        // texture coords
-    -0.2f, -0.5f, 0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 0.0f, // bottom left
-    -0.2f, 0.5f,  0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f, // top left
-    0.2f,  0.5f,  0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, // top right
-    0.2f, -0.5f,  0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 0.0f // bottom right
+    - 0.2f, -0.45f, 0.0f,   0.0f, 0.0f, 0.0f,   0.0f, 0.0f, // bottom left
+    -0.2f, 0.45f,  0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f, // top left
+    0.2f,  0.45f,  0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, // top right
+    0.2f, -0.45f,  0.0f,   0.0f, 0.0f, 0.0f,   1.0f, 0.0f // bottom right
     };
     unsigned int gainsIndices[] = { 
         0, 1, 3,   // first triangle
@@ -134,24 +134,27 @@ int main()
     glEnableVertexAttribArray(2);
 
     // --- Create a texture ---
+    stbi_set_flip_vertically_on_load(true); // flips images loaded so that 0,0 is on the bottom left corner
     // Import GAINS Image for use as a texture
     int width, height, nrChannels;
-    //unsigned char* GAINS_Image_data = stbi_load("GAINS_Small_Transparent.png", &width, &height, &nrChannels, 0); // access violation???
-    //unsigned char* GAINS_Image_data = stbi_load("GAINS_Small_Transparent.png", &width, &height, &nrChannels, 0); // access violation???
+    //unsigned char* GAINS_Image_data = stbi_load("GAINS_Small_Transparent.png", &width, &height, &nrChannels, 0);
+    unsigned char* GAINS_Image_data = stbi_load("GAINS_Small_White.png", &width, &height, &nrChannels, 0); 
     //std::cout << stbi_failure_reason() << std::endl; // vug: can't fopen the image
     //unsigned char* GAINS_Image_data = stbi_load("GAINS_Small_Transparent.png", &width, &height, &nrChannels, 0);
     //std::cout << width << std::endl; // bug: this number is becoming negative somehow
     //std::cout << height << std::endl;
     //std::cout << nrChannels << std::endl;
-    unsigned char* GAINS_Image_data = NULL;
-    width = 100;
-    height = 100;
-    nrChannels = 3;
+    //unsigned char* GAINS_Image_data = NULL;
+    //width = 100;
+    //height = 100;
+    //nrChannels = 3;
+    
 
     // create the texture
-    unsigned int texture;
-    glGenTextures(1, &texture); // first input is number of textures to generate, 2nd is pointer to texture / texture array
-    glBindTexture(GL_TEXTURE_2D, texture);
+    unsigned int gains_texture;
+    glGenTextures(1, &gains_texture); // first input is number of textures to generate, 2nd is pointer to texture / texture array
+
+    glBindTexture(GL_TEXTURE_2D, gains_texture);
 
     // set texture options for wrapping and filters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -162,9 +165,10 @@ int main()
     // load and generate the texture
     if (GAINS_Image_data)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, GAINS_Image_data); // Inputs: 1st specifies texture target,
-        // 2nd is mipmap level, 3rd is openGL image format (default = RGB), 4th is width, 5th is height, 6th must be 0, 7th is format,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, GAINS_Image_data); // Inputs: 1st specifies texture target,
+        // 2nd is mipmap level, 3rd is openGL image format (default = GL_RGB), 4th is width, 5th is height, 6th must be 0, 7th is format,
         // 8th is data type, 9th is the actual image data
+        // use GL_RGBA if file uses an alpha (transparency) channel like .pngs
         glGenerateMipmap(GL_TEXTURE_2D); // Mipmaps are very important if we are putting textures on large objects far away
     }
     else
@@ -172,6 +176,10 @@ int main()
         std::cout << "Failed to load texture" << std::endl;
     }
     stbi_image_free(GAINS_Image_data); // Frees the image memory now that a texture has been made
+
+    // will need these lines if we use multiple textures in 1 shader program. Repeat the .setInt per texture we use
+    //textureShaderProgram.use();
+    //textureShaderProgram.setInt("texture1", 0); // assign which textures in main will line up with textures in the shader program
 
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -195,6 +203,7 @@ int main()
         float timeValue = glfwGetTime();
         float colorStrength = sin(timeValue) / 2.0f + 0.5f;
         shaderProgram.setFloat("brightness", colorStrength);
+        shaderProgram.setFloat("rotation", 1);
 
         // draw the large triangle
         glBindVertexArray(VAO[0]); 
@@ -202,13 +211,17 @@ int main()
 
         // draw the small upside down triangle
         shaderProgram.setFloat("brightness", 1-colorStrength);
+        shaderProgram.setFloat("rotation", timeValue);
         glBindVertexArray(VAO[1]); 
         glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw
 
         //draw the gains logo
         textureShaderProgram.use();
         textureShaderProgram.setFloat("brightness", 1);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        textureShaderProgram.setFloat("transform_x", - 0.75 * cos(timeValue));
+        textureShaderProgram.setFloat("transform_y", - 0.75 * sin(timeValue));
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, gains_texture);
         glBindVertexArray(VAO[2]);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 

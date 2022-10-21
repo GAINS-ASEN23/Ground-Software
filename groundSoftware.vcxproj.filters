@@ -51,5 +51,8 @@
     <Image Include="GAINS_Small_Transparent.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="GAINS_Small_White.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

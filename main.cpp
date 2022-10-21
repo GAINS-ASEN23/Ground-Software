@@ -143,6 +143,10 @@ int main()
     //std::cout << width << std::endl; // bug: this number is becoming negative somehow
     //std::cout << height << std::endl;
     //std::cout << nrChannels << std::endl;
+    unsigned char* GAINS_Image_data = NULL;
+    width = 100;
+    height = 100;
+    nrChannels = 3;
 
     // create the texture
     unsigned int texture;

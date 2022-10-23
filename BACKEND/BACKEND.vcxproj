@@ -142,6 +142,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="mainBackend.cpp" />
+    <ClCompile Include="SPICEQuery.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SPICEQuery.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

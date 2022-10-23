@@ -19,8 +19,8 @@ void SPICE::SpiceCall()
     // Create a class which keeps track of loaded kernels    
     // kernels will be unloaded once this instance goes out of scope
     KernelSet Kernels{};
-    Kernels.LoadAuxillary("C:/Users/djpop/source/repos/groundSoftware/BACKEND/Ephemeris/naif0012.tls"); // Load naif0012.tls
-    Kernels.LoadEphemeris("C:/Users/djpop/source/repos/groundSoftware/BACKEND/Ephemeris/de440.bsp");    // Load de430.bsp
+    Kernels.LoadAuxillary("../../BACKEND/Ephemeris/naif0012.tls"); // Load naif0012.tls
+    Kernels.LoadEphemeris("../../BACKEND/Ephemeris/de440.bsp");    // Load de430.bsp
 
     // Display any thrown errors and exit
     if (Kernels.HasFailed() == true)

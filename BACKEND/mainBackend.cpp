@@ -8,9 +8,13 @@
 #include "SPICEQuery.h"
 
 int main()
-{
-    SPICE spiceOBJ;
-    spiceOBJ.SpiceCall();
+{ 
+    std::string date = "2024 June 10, 13:00:00 PST";
 
+    SPICE spiceOBJ;
+    spiceOBJ.SpiceCall(date, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
+
+
+    system("pause");
     return 0;
 }

@@ -5,11 +5,12 @@
 */
 
 #include <string>
+#include <tuple>
 #include "SPICEQuery.h"
 
 using namespace Spice;
 
-void SPICE::SpiceCall(std::string Date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration)
+std::tuple<double, double, double> SPICE::SpiceCall(std::string Date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration)
 {
     // Create a class which keeps track of loaded kernels    
     // kernels will be unloaded once this instance goes out of scope
@@ -57,4 +58,5 @@ void SPICE::SpiceCall(std::string Date, Spice::ObjectID Object, Spice::FrameID F
 
     printf("Light Second Delay = %g\n", State.LightTime);
 
+    return {State.PosX, State.PosY, State.PosZ};
 }

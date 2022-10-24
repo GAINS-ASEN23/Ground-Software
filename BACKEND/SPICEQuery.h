@@ -15,5 +15,5 @@
 class SPICE 
 {       
 	public:            
-		void SpiceCall(std::string Date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration);	// Function for querying into SPICE SPK file
+		std::tuple<double, double, double> SpiceCall(std::string Date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration);	// Function for querying into SPICE SPK file
 };

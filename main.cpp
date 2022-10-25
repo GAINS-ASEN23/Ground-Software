@@ -12,8 +12,14 @@
 
 #include <shader.h>
 
+// for image loading and converting to texture functionality
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
+// for vector and matrix math - ask Derek how to link this
+//#include <glm/glm.hpp>
+//#include <glm/gtc/matrix_transform.hpp>
+//#include <glm/gtc/type_ptr.hpp>
 
 
 // Create functions to outline what happens in window

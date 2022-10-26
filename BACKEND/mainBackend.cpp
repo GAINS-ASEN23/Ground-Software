@@ -17,8 +17,16 @@ int main()
 
     for (int i = 0; i <= dataLength; i++) {
         std::tie(PosX, PosY, PosZ) = spiceOBJ.SpiceCall(date[i], Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
-        printf("\n Main Position (km) = (%g, %g, %g)\n", PosX, PosY, PosZ);
+        PosVector[i][1] = PosX;
+        PosVector[i][2] = PosY;
+        PosVector[i][3] = PosZ;
     }
+
+    /*
+    for (int j = 0; j <= dataLength; j++) {
+        printf("\n Main Position (km) = (%g, %g, %g)\n", PosVector[j][1], PosVector[j][2], PosVector[j][3]);
+    }
+    */
 
     return 0;
 }

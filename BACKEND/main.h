@@ -3,7 +3,7 @@
 * Authors: Derek Popich, Cannon Palmer, Brian Trybus, Alfredo Restrepo
 * Purpose: This is the main header file for the Orbital Trajectory Estimation Software backend.
 */
-
 #pragma once
 
 double PosX, PosY, PosZ;
+double PosVector[3][61];

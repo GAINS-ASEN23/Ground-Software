@@ -45,6 +45,7 @@ std::tuple<double, double, double> SPICE::SpiceCall(std::string Date, Spice::Obj
         puts(GetErrorAndReset().c_str());
     }
 
+    /*
     printf("Position (km) = (%g, %g, %g)\n",
         State.PosX,
         State.PosY,
@@ -53,10 +54,10 @@ std::tuple<double, double, double> SPICE::SpiceCall(std::string Date, Spice::Obj
     printf("Velocity (km/s) = (%g, %g, %g)\n",
         State.VelX,
         State.VelY,
-        State.VelZ
-    );
+        State.VelZ); 
 
     printf("Light Second Delay = %g\n", State.LightTime);
+    */
 
     return {State.PosX, State.PosY, State.PosZ};
 }

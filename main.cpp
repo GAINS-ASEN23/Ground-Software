@@ -17,9 +17,9 @@
 #include "stb_image.h"
 
 // for vector and matrix math - ask Derek how to link this
-//#include <glm/glm.hpp>
-//#include <glm/gtc/matrix_transform.hpp>
-//#include <glm/gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 
 // Create functions to outline what happens in window
@@ -187,6 +187,10 @@ int main()
     //textureShaderProgram.use();
     //textureShaderProgram.setInt("texture1", 0); // assign which textures in main will line up with textures in the shader program
 
+    // Define the pointers to the transformation matrices
+    glm::mat4 trans1;
+    glm::mat4 trans2;
+
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -209,7 +213,10 @@ int main()
         float timeValue = glfwGetTime();
         float colorStrength = sin(timeValue) / 2.0f + 0.5f;
         shaderProgram.setFloat("brightness", colorStrength);
-        shaderProgram.setFloat("rotation", 1);
+        // update the uniform transformation
+        trans1 = glm::mat4(1.0f);
+        trans1 = glm::scale(trans1, glm::vec3(0.75)*(sin(timeValue/2) / 2.0f + 1.0f));
+        shaderProgram.setMat4("transform", glm::value_ptr(trans1));
 
         // draw the large triangle
         glBindVertexArray(VAO[0]); 
@@ -224,8 +231,13 @@ int main()
         //draw the gains logo
         textureShaderProgram.use();
         textureShaderProgram.setFloat("brightness", 1);
-        textureShaderProgram.setFloat("transform_x", - 0.75 * cos(timeValue));
-        textureShaderProgram.setFloat("transform_y", - 0.75 * sin(timeValue));
+        //transform it
+        trans2 = glm::mat4(1.0f);
+        trans2 = glm::rotate(trans2, glm::radians(45*timeValue), glm::vec3(0.0, 0.0, 1.0));
+        trans2 = glm::translate(trans2, glm::vec3(1.0f * cos(2*timeValue), -1.0f * sin(2*timeValue), 0.0f));
+        trans2 = glm::scale(trans2, glm::vec3(1.0, 0.75, 1.0));
+        textureShaderProgram.setMat4("transform", glm::value_ptr(trans2));
+        // set the texture
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, gains_texture);
         glBindVertexArray(VAO[2]);

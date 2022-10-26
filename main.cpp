@@ -91,7 +91,7 @@ int main()
     // Gains Loggo
     float gainsRectangle[] = {
         // positions           // colors        // texture coords
-    - 0.2f, -0.45f, 0.0f,   0.0f, 0.0f, 0.0f,   0.0f, 0.0f, // bottom left
+    -0.2f, -0.45f, 0.0f,   0.0f, 0.0f, 0.0f,   0.0f, 0.0f, // bottom left
     -0.2f, 0.45f,  0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f, // top left
     0.2f,  0.45f,  0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f, // top right
     0.2f, -0.45f,  0.0f,   0.0f, 0.0f, 0.0f,   1.0f, 0.0f // bottom right
@@ -101,12 +101,30 @@ int main()
         1, 2, 3    // second triangle
     };
 
+    // 3D square pyramid
+    float pyramid[] = {
+        // positions          // colors
+     -0.5f,  0.5f, -0.5f,   0.0f, 0.0f, 0.8f,   // top left
+      0.5f,  0.5f, -0.5f,   0.0f, 0.8f, 0.8f,   // top right
+      0.5f, -0.5f, -0.5f,   0.0f, 0.0f, 0.8f,   // bottom right
+     -0.5f, -0.5f, -0.5f,   0.0f, 0.8f, 0.8f,   // bottom left
+      0.0f,  0.0f,  0.5f,   0.0f, 0.0f, 0.0f    // front point
+    };
+    unsigned int pyramidIndices[] = {
+        0, 1, 2,   // first bottom triangle
+        0, 2, 3,   // second bottom triangle
+        0, 1, 4,   // side triangle 1
+        1, 2, 4,   // side triangle 1
+        2, 3, 4,   // side triangle 1
+        3, 0, 4,   // side triangle 1
+    };
+
 
     // --- Create the Shaders ---
-    unsigned int VBO[3], VAO[3], EBO; // creates 3 VBOs and VAOs, and makes an EBO
-    glGenVertexArrays(3, VAO);
-    glGenBuffers(3, VBO);
-    glGenBuffers(1, &EBO); // EBOs, useful for not needing to declare a vertex multiple times when we make many triangles
+    unsigned int VBO[4], VAO[4], EBO[2]; // creates 3 VBOs and VAOs, and makes an EBO
+    glGenVertexArrays(4, VAO);
+    glGenBuffers(4, VBO);
+    glGenBuffers(2, EBO); // EBOs, useful for not needing to declare a vertex multiple times when we make many triangles
 
     // Initialize 1st shader object (large triangle)
     glBindVertexArray(VAO[0]);
@@ -130,7 +148,7 @@ int main()
     glBindVertexArray(VAO[2]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(gainsRectangle), gainsRectangle, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(gainsIndices), gainsIndices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0); // position attribute
     glEnableVertexAttribArray(0);
@@ -138,6 +156,17 @@ int main()
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
+
+    // Initialize the pyramid object
+    glBindVertexArray(VAO[3]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[3]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(pyramid), pyramid, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(pyramidIndices), pyramidIndices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0); // position attribute
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float))); // color attribute
+    glEnableVertexAttribArray(1);
 
     // --- Create a texture ---
     stbi_set_flip_vertically_on_load(true); // flips images loaded so that 0,0 is on the bottom left corner
@@ -191,6 +220,15 @@ int main()
     glm::mat4 trans1;
     glm::mat4 trans2;
 
+    // Create the model,view, and projection transformation matrices
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    glm::mat4 view = glm::mat4(1.0f);
+        // note that we're translating the scene in the reverse direction of where we want to move
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    glm::mat4 projection;
+    projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -204,6 +242,14 @@ int main()
         // choose the shader program to use
         shaderProgram.use();
 
+        // update the model, view, and projection transformation matrices
+        int modelLoc = glGetUniformLocation(shaderProgram.ID, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        int viewLoc = glGetUniformLocation(shaderProgram.ID, "view");
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        int projectionLoc = glGetUniformLocation(shaderProgram.ID, "projection");
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
         /*// Draw the rectangles with EBOs
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -212,7 +258,7 @@ int main()
         // update the uniform color
         float timeValue = glfwGetTime();
         float colorStrength = sin(timeValue) / 2.0f + 0.5f;
-        shaderProgram.setFloat("brightness", colorStrength);
+        /*shaderProgram.setFloat("brightness", colorStrength);
         // update the uniform transformation
         trans1 = glm::mat4(1.0f);
         trans1 = glm::scale(trans1, glm::vec3(0.75)*(sin(timeValue/2) / 2.0f + 1.0f));
@@ -224,13 +270,28 @@ int main()
 
         // draw the small upside down triangle
         shaderProgram.setFloat("brightness", 1-colorStrength);
-        shaderProgram.setFloat("rotation", timeValue);
         glBindVertexArray(VAO[1]); 
-        glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw
+        glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw */
+
+        // draw the pyramid
+        trans1 = glm::mat4(1.0f);
+        trans1 = glm::rotate(trans1, glm::radians(45 * timeValue), glm::vec3(0.0, 0.0, 1.0));
+        trans1 = glm::scale(trans1, glm::vec3(1.0));
+        shaderProgram.setMat4("transform", trans1);
+        shaderProgram.setFloat("brightness", 1);
+        glBindVertexArray(VAO[3]);
+        glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
 
         //draw the gains logo
         textureShaderProgram.use();
         textureShaderProgram.setFloat("brightness", 1);
+        // update the model, view, and projection transformation matrices
+        modelLoc = glGetUniformLocation(textureShaderProgram.ID, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        viewLoc = glGetUniformLocation(textureShaderProgram.ID, "view");
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        projectionLoc = glGetUniformLocation(textureShaderProgram.ID, "projection");
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
         //transform it
         trans2 = glm::mat4(1.0f);
         trans2 = glm::rotate(trans2, glm::radians(45*timeValue), glm::vec3(0.0, 0.0, 1.0));

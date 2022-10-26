@@ -216,7 +216,7 @@ int main()
         // update the uniform transformation
         trans1 = glm::mat4(1.0f);
         trans1 = glm::scale(trans1, glm::vec3(0.75)*(sin(timeValue/2) / 2.0f + 1.0f));
-        shaderProgram.setMat4("transform", glm::value_ptr(trans1));
+        shaderProgram.setMat4("transform", trans1);
 
         // draw the large triangle
         glBindVertexArray(VAO[0]); 
@@ -236,7 +236,7 @@ int main()
         trans2 = glm::rotate(trans2, glm::radians(45*timeValue), glm::vec3(0.0, 0.0, 1.0));
         trans2 = glm::translate(trans2, glm::vec3(1.0f * cos(2*timeValue), -1.0f * sin(2*timeValue), 0.0f));
         trans2 = glm::scale(trans2, glm::vec3(1.0, 0.75, 1.0));
-        textureShaderProgram.setMat4("transform", glm::value_ptr(trans2));
+        textureShaderProgram.setMat4("transform", trans2);
         // set the texture
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, gains_texture);

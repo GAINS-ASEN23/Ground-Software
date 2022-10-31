@@ -5,5 +5,8 @@
 */
 #pragma once
 
+#include <vector>
+
+// Variables
 double PosX, PosY, PosZ;
-double PosVector[3][61];
+std::vector<std::vector<double>> PosVector;

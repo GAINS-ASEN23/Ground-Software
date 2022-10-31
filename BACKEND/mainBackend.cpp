@@ -5,28 +5,26 @@
 */
 
 #include <iostream>
+
 #include "main.h"
 #include "data.h"
 #include "SPICEQuery.h"
 
+using namespace std;
+
 int main()
 {
-    size_t dataLength = sizeof(date)/sizeof(date[0]);
-
     SPICE spiceOBJ;
 
-    for (int i = 0; i <= dataLength; i++) {
+    for (int i = 0; i <= 60; i++) {
         std::tie(PosX, PosY, PosZ) = spiceOBJ.SpiceCall(date[i], Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
-        PosVector[i][1] = PosX;
-        PosVector[i][2] = PosY;
-        PosVector[i][3] = PosZ;
+        
+        PosVector.push_back({ PosX, PosY, PosZ});
     }
 
-    /*
-    for (int j = 0; j <= dataLength; j++) {
-        printf("\n Main Position (km) = (%g, %g, %g)\n", PosVector[j][1], PosVector[j][2], PosVector[j][3]);
+    for (size_t j = PosVector.size(); j-- > 0; ) {
+        printf("\n Main Position (km) = (%g, %g, %g)\n", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
     }
-    */
 
     return 0;
 }

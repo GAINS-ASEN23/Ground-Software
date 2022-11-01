@@ -9,4 +9,8 @@
 
 // Variables
 double PosX, PosY, PosZ;
-std::vector<std::vector<double>> PosVector;
+double Sun_PosX, Sun_PosY, Sun_PosZ;
+
+// Create the Position Arrays of Moon and Sun
+std::vector<std::vector<double>> PosVectorMoon;
+std::vector<std::vector<double>> PosVectorSun;

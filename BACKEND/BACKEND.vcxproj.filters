@@ -33,12 +33,4 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="Ephemeris\de440.bsp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Ephemeris\naif0012.tls">
-      <Filter>Resource Files</Filter>
-    </None>
-  </ItemGroup>
 </Project>

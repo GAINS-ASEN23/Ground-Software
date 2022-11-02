@@ -55,4 +55,12 @@
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="BACKEND\Ephemeris\de440.bsp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="BACKEND\Ephemeris\naif0012.tls">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>

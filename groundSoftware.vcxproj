@@ -245,6 +245,10 @@
     <Image Include="GAINS_Small_Transparent.png" />
     <Image Include="GAINS_Small_White.png" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="BACKEND\Ephemeris\de440.bsp" />
+    <None Include="BACKEND\Ephemeris\naif0012.tls" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

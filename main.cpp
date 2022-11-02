@@ -6,6 +6,12 @@
 
 #include <iostream>
 
+// required files for GUI. Must load before glad
+#include "Libraries/include/ImGui/imgui.h"
+#include "Libraries/include/ImGui/imgui_impl_glfw.h"
+#include "Libraries/include/ImGui/imgui_impl_opengl3.h"
+//#include "Libraries/include/ImGui/imgui_impl_opengl3_loader.h" // I am unsure if this is needed as an #include
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <main.h>
@@ -75,6 +81,15 @@ int main()
     // Test Function from sub files 
     spiceOBJ.printSpiceData();
 
+    
+    // Setup the GUI
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+    
 
     // openGL options
     glEnable(GL_DEPTH_TEST); // depth testing to ensure the proper order of objects
@@ -231,6 +246,8 @@ int main()
     // Define the pointers to the transformation matrices
     glm::mat4 trans1;
     glm::mat4 trans2;
+    float rotation = 0.0f;
+    float translation[] = { 0.0f, 0.0f, 0.0f };
 
     // Create the model,view, and projection transformation matrices
     glm::mat4 model = glm::mat4(1.0f);
@@ -250,6 +267,11 @@ int main()
         // Put into back buffer
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // create a new GUI frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
 
         // choose the shader program to use
         shaderProgram.use();
@@ -287,7 +309,9 @@ int main()
 
         // draw the bottom pyramid
         trans1 = glm::mat4(1.0f);
-        trans1 = glm::rotate(trans1, glm::radians(45 * timeValue), glm::vec3(0.0, 0.0, 1.0));
+        trans1 = glm::translate(trans1, glm::vec3(translation[0], translation[1], translation[2]));
+        //trans1 = glm::rotate(trans1, glm::radians(45 * timeValue), glm::vec3(0.0, 0.0, 1.0));
+        trans1 = glm::rotate(trans1, rotation, glm::vec3(0.0, 0.0, 1.0));
         trans1 = glm::scale(trans1, glm::vec3(1.0));
         shaderProgram.setMat4("transform", trans1);
         shaderProgram.setFloat("brightness", 1);
@@ -327,10 +351,28 @@ int main()
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 
+        // render the GUI
+        ImGui::Begin("GUI Window");
+        ImGui::Button("Welcome to ImGui!");
+
+        ImGui::SliderFloat("rotation", &rotation, 0, M_PI);
+        ImGui::SliderFloat3("position", translation, -1.0, 1.0);
+
+        ImGui::End();
+
+        // Render dear imgui into screen
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         // Swap buffers and poll for IO events (keys pressed/released, mouse moved etc.) - Move from back buffer to front buffer
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    // stop rendering ImGui
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     // deallocate the VAOs and VBOs
     glDeleteVertexArrays(3, VAO); // deletes 2 VAOs and VBOs

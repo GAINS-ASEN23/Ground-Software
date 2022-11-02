@@ -17,8 +17,8 @@ std::vector<std::vector<double>>SPICE::SpiceCall(std::vector<std::string> date, 
 	// Create a class which keeps track of loaded kernels
 	// kernels will be unloaded once this instance goes out of scope
 	KernelSet Kernels{};
-	Kernels.LoadAuxillary("Ephemeris/naif0012.tls"); // Load naif0012.tls
-	Kernels.LoadEphemeris("Ephemeris/de440.bsp");    // Load de430.bsp
+	Kernels.LoadAuxillary("naif0012.tls"); // Load naif0012.tls
+	Kernels.LoadEphemeris("de440.bsp");    // Load de430.bsp
 
 	// Display any thrown errors and exit
 	if (Kernels.HasFailed() == true)

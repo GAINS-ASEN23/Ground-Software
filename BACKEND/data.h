@@ -5,7 +5,7 @@
 */
 #pragma once
 
-const char* date[] =
+std::vector<std::string> date =
 { 
 	"2022 October 01, 13:00:00 PST",
 	"2022 October 02, 13:00:00 PST",

@@ -6,6 +6,11 @@
 
 #pragma once
 
+#include <iostream>
+#include <string>
+#include <tuple>
+#include <vector>
+
 #include "cppSpice/spice_label_map.hpp"
 #include "cppSpice/spice_kernel_set.hpp"
 #include "cppSpice/spice_time.hpp"
@@ -15,5 +20,6 @@
 class SPICE 
 {       
 	public:            
-		std::tuple<double, double, double> SpiceCall(std::string Date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration);	// Function for querying into SPICE SPK file
+		std::vector<std::vector<double>>SpiceCall(std::vector<std::string> date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration);	// Function for querying into SPICE SPK file
+		void printSpiceData(); // Function to print SPICE data
 };

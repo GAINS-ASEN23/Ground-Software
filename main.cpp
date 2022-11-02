@@ -21,6 +21,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+// BACKEND INCLUDES
+#include "BACKEND/mainBackend.h"
+
 
 // Create functions to outline what happens in window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -66,6 +69,12 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+
+    /* TEMPORARY BACKEND STUFF */
+    SPICE spiceOBJ;
+    // Test Function from sub files 
+    spiceOBJ.printSpiceData();
+
 
     // Generate shader program from the shader class
     shader shaderProgram(vertexShaderSource, fragmentShaderSource);

@@ -5,12 +5,5 @@
 */
 #pragma once
 
-#include <vector>
-
-// Variables
-double PosX, PosY, PosZ;
-double Sun_PosX, Sun_PosY, Sun_PosZ;
-
-// Create the Position Arrays of Moon and Sun
-std::vector<std::vector<double>> PosVectorMoon;
-std::vector<std::vector<double>> PosVectorSun;
+// All the BACKEND includes
+#include "SPICEQuery.h"

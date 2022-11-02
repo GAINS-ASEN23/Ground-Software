@@ -26,7 +26,7 @@
     <ClInclude Include="SPICEQuery.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="main.h">
+    <ClInclude Include="mainBackend.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="data.h">

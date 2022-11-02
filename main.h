@@ -48,7 +48,7 @@ const char* vs_Texture_Source = "#version 330 core\n"
 "uniform mat4 view;\n"
 "uniform mat4 projection;\n"
 "uniform float brightness;\n" //color strength value to pass on
-"uniform mat4 transform;\n" // multiply the image coordinates by a transformation matrix
+"uniform mat4 transform;\n" /* multiply the image coordinates by a transformation matrix */
 "out vec3 chosenColor;\n" 
 "out vec2 texCoord;\n"
 "void main()\n"

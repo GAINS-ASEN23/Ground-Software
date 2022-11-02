@@ -67,6 +67,9 @@ int main()
         return -1;
     }
 
+    // openGL options
+    glEnable(GL_DEPTH_TEST); // depth testing to ensure the proper order of objects
+
     // Generate shader program from the shader class
     shader shaderProgram(vertexShaderSource, fragmentShaderSource);
 
@@ -237,7 +240,7 @@ int main()
 
         // Put into back buffer
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // choose the shader program to use
         shaderProgram.use();
@@ -273,7 +276,7 @@ int main()
         glBindVertexArray(VAO[1]); 
         glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw */
 
-        // draw the pyramid
+        // draw the bottom pyramid
         trans1 = glm::mat4(1.0f);
         trans1 = glm::rotate(trans1, glm::radians(45 * timeValue), glm::vec3(0.0, 0.0, 1.0));
         trans1 = glm::scale(trans1, glm::vec3(1.0));
@@ -281,6 +284,16 @@ int main()
         shaderProgram.setFloat("brightness", 1);
         glBindVertexArray(VAO[3]);
         glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
+
+        /*// draw the top pyramid
+        trans1 = glm::mat4(1.0f);
+        trans1 = glm::translate(trans1, glm::vec3(0.0,0.0,0.5));
+        trans1 = glm::rotate(trans1, glm::f32(glm::radians(180.0)), glm::vec3(1.0, 0.0, 0.0));
+        trans1 = glm::scale(trans1, glm::vec3(0.5));
+        shaderProgram.setMat4("transform", trans1);
+        shaderProgram.setFloat("brightness", 1);
+        glBindVertexArray(VAO[3]);
+        glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);*/
 
         //draw the gains logo
         textureShaderProgram.use();

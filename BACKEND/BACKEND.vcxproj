@@ -287,6 +287,10 @@
     <ClInclude Include="mainBackend.h" />
     <ClInclude Include="SPICEQuery.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Ephemeris\de440.bsp" />
+    <None Include="Ephemeris\naif0012.tls" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

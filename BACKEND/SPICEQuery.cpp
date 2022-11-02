@@ -14,11 +14,11 @@ std::vector<std::vector<double>>SPICE::SpiceCall(std::vector<std::string> date, 
 	// Define Vector for return
 	std::vector<std::vector<double>> PosVector;
 
-	// Create a class which keeps track of loaded kernels    
+	// Create a class which keeps track of loaded kernels
 	// kernels will be unloaded once this instance goes out of scope
 	KernelSet Kernels{};
-	Kernels.LoadAuxillary("../BACKEND/Ephemeris/naif0012.tls"); // Load naif0012.tls
-	Kernels.LoadEphemeris("../BACKEND/Ephemeris/de440.bsp");    // Load de430.bsp
+	Kernels.LoadAuxillary("Ephemeris/naif0012.tls"); // Load naif0012.tls
+	Kernels.LoadEphemeris("Ephemeris/de440.bsp");    // Load de430.bsp
 
 	// Display any thrown errors and exit
 	if (Kernels.HasFailed() == true)

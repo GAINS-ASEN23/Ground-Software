@@ -17,6 +17,10 @@
 # Mono auto generated files
 mono_crash.*
 
+# boost allowances
+!boost\boost\preprocessor\debug
+!boost\boost\predef\architecture\x86
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

@@ -284,11 +284,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="mainBackend.cpp" />
+    <ClCompile Include="N_Body_Simulation.cpp" />
     <ClCompile Include="SPICEQuery.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="data.h" />
     <ClInclude Include="mainBackend.h" />
+    <ClInclude Include="N_Body_Simulation.h" />
     <ClInclude Include="SPICEQuery.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

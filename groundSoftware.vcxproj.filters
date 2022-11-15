@@ -51,6 +51,9 @@
     <ClCompile Include="Libraries\include\ImGui\imgui_demo.cpp">
       <Filter>Source Files\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Sphere.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="shader.h">
@@ -95,6 +98,9 @@
     <ClInclude Include="Libraries\include\ImGui\imgui_impl_opengl3.h">
       <Filter>Header Files\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="Sphere.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="GUI1.rc">
@@ -106,6 +112,9 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="GAINS_Small_White.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="earth2048.bmp">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

@@ -240,6 +240,7 @@
     <ClCompile Include="Libraries\include\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
+    <ClCompile Include="Sphere.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Libraries\include\ImGui\imconfig.h" />
@@ -255,12 +256,14 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
     <ClInclude Include="shader.h" />
+    <ClInclude Include="Sphere.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="GUI1.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="earth2048.bmp" />
     <Image Include="GAINS_Small_Transparent.png" />
     <Image Include="GAINS_Small_White.png" />
   </ItemGroup>

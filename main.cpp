@@ -175,6 +175,10 @@ int main()
     glm::mat4 init_trans3;
     float rotation = 0.0f;
     float translation[] = { -1.0f, 0.0f, 0.0f };
+    float earth_rotation = 0.0f;
+    float moon_rotation = 0.0f;
+    float moon_translation[] = { 1.0f, 0.0f, 0.0f };
+    bool lock_motion = false;
 
     // Create the model,view, and projection transformation matrices
     glm::mat4 model = glm::mat4(1.0f);
@@ -204,6 +208,8 @@ int main()
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once);
+        ImGui::SetNextWindowSize({ 400,160 }, ImGuiCond_Once);
 
         // keep track of how long it takes to render each frame
         float currentFrame = glfwGetTime();
@@ -274,6 +280,14 @@ int main()
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         */
 
+        // calculate the correct Planet position and rotation values
+        if (lock_motion == false) {
+            earth_rotation = fmod((360.0f / 24.0f) * 2 * timeValue,360);
+            moon_rotation = fmod((360.0f / 28.0f) * 2 * timeValue,360);
+            moon_translation[0] = (cos((2 * float(M_PI) / 28.0f) * 2 * timeValue));
+            moon_translation[1] = (sin((2 * float(M_PI) / 28.0f) * 2 * timeValue));
+        }
+        
 
         // --- Draw the Earth ---
         planetShaderProgram.use();
@@ -288,7 +302,7 @@ int main()
         planetShaderProgram.setMat4("init_trans", init_trans3);
         trans3 = glm::mat4(1.0f);
         trans3 = glm::translate(trans3, glm::vec3(0.0f, 0.0f, 0.0f));
-        trans3 = glm::rotate(trans3, glm::radians((360.0f / 24.0f) * 2 * timeValue), glm::vec3(0.0, 0.0, 1.0));
+        trans3 = glm::rotate(trans3, glm::radians(earth_rotation), glm::vec3(0.0, 0.0, 1.0));
         trans3 = glm::scale(trans3, glm::vec3(0.5, 0.5, 0.5));
         planetShaderProgram.setMat4("transform", trans3);
         glActiveTexture(GL_TEXTURE0);
@@ -308,9 +322,10 @@ int main()
         init_trans3 = glm::rotate(init_trans3, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         planetShaderProgram.setMat4("init_trans", init_trans3);
         trans3 = glm::mat4(1.0f);
-        trans3 = glm::translate(trans3, glm::vec3(1.5f * cos((2*float(M_PI) / 28.0f) * 2 * timeValue), 1.5f * sin((2*float(M_PI) / 28.0f) * 2 * timeValue), 0.0f));
-        trans3 = glm::rotate(trans3, glm::radians((360.0f / 28.0f) * 2 * timeValue), glm::vec3(0.0, 0.0, 1.0));
-        trans3 = glm::scale(trans3, glm::vec3(0.2, 0.2, 0.2));
+        trans3 = glm::translate(trans3, glm::vec3(1.5f*moon_translation[0],1.5f*moon_translation[1],moon_translation[2]));
+        //trans3 = glm::translate(trans3, glm::vec3(1.5f * cos((2*float(M_PI) / 28.0f) * 2 * timeValue), 1.5f * sin((2*float(M_PI) / 28.0f) * 2 * timeValue), 0.0f));
+        trans3 = glm::rotate(trans3, glm::radians(moon_rotation), glm::vec3(0.0, 0.0, 1.0));
+        trans3 = glm::scale(trans3, glm::vec3(0.125, 0.125, 0.125));
         planetShaderProgram.setMat4("transform", trans3);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textures[2]);
@@ -320,10 +335,12 @@ int main()
 
         // render the GUI
         ImGui::Begin("GUI Window");
-        ImGui::Button("Welcome to ImGui!");
-
-        ImGui::SliderFloat("rotation", &rotation, 0, M_PI);
-        ImGui::SliderFloat3("position", translation, -1.0, 1.0);
+        ImGui::Button("Earth Centered ImGui Example Window");
+        ImGui::Text("Planetary Distances Are Not To Scale");
+        ImGui::Checkbox("Lock Planet Movement",&lock_motion);
+        ImGui::SliderFloat("Earth Rotation", &earth_rotation, 0, 360);
+        ImGui::SliderFloat3("Moon Position", moon_translation, -1.0, 1.0);
+        ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);
 
         ImGui::End();
 

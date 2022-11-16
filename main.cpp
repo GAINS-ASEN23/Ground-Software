@@ -117,8 +117,6 @@ int main()
 
     // openGL options
     glEnable(GL_DEPTH_TEST); // depth testing to ensure the proper order of objects
-    //glShadeModel(GL_SMOOTH);                    // shading mathod: GL_SMOOTH or GL_FLAT
-    //glPixelStorei(GL_UNPACK_ALIGNMENT, 4);      // 4-byte pixel alignment
 
     // Generate shader program from the shader class
     shader shaderProgram(vertexShaderSource, fragmentShaderSource);
@@ -136,16 +134,14 @@ int main()
     glGenBuffers(3, EBO); // EBOs, useful for not needing to declare a vertex multiple times when we make many triangles
     loadShaderObjects(VBO, VAO, EBO);
 
-    // draw the earth's sphere
-    Sphere earth(1.0f, 36, 18);           // radius, sectors, stacks, smooth(default)
+    // Generate a sphere
+    Sphere planet(1.0f, 36, 18);           // radius, sectors, stacks, smooth(default)
     glBindVertexArray(VAO[4]);
-    //glGenBuffers(1, VBO[4]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[4]);
-    glBufferData(GL_ARRAY_BUFFER, earth.getInterleavedVertexSize(), earth.getInterleavedVertices(), GL_STATIC_DRAW);
-    //glGenBuffers(1, EBO[2]);
+    glBufferData(GL_ARRAY_BUFFER, planet.getInterleavedVertexSize(), planet.getInterleavedVertices(), GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[2]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, earth.getIndexSize(), earth.getIndices(), GL_STATIC_DRAW);
-    int stride = earth.getInterleavedStride();     // should be 32 bytes
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, planet.getIndexSize(), planet.getIndices(), GL_STATIC_DRAW);
+    int stride = planet.getInterleavedStride();     // should be 32 bytes
     glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, false, stride, (void*)(sizeof(float) * 3));
@@ -158,7 +154,6 @@ int main()
     unsigned int textures[3];
     glGenTextures(3, textures); // first input is number of textures to generate, 2nd is pointer to texture / texture array
     int width, height, nrChannels;
-    //int gains_width, gains_height, gains_nrChannels;
     unsigned char* gains_image_data = stbi_load("GAINS_Small_White.png", &width, &height, &nrChannels, 0);
     textures[0] = loadTexture(gains_image_data, width, height, nrChannels, textures[0]);
 
@@ -185,9 +180,7 @@ int main()
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     glm::mat4 view = glm::mat4(1.0f);
-    //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f)); // note that we're translating the scene in the reverse direction of where we want to move
     glm::mat4 projection;
-    //projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f);
 
     // camera directions
     glm::vec3 direction;
@@ -204,7 +197,7 @@ int main()
         processInput(window);
 
         // Put into back buffer
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         // create a new GUI frame
@@ -240,21 +233,6 @@ int main()
 
         // update the uniform color
         float timeValue = glfwGetTime();
-        float colorStrength = sin(timeValue) / 2.0f + 0.5f;
-        /*shaderProgram.setFloat("brightness", colorStrength);
-        // update the uniform transformation
-        trans1 = glm::mat4(1.0f);
-        trans1 = glm::scale(trans1, glm::vec3(0.75)*(sin(timeValue/2) / 2.0f + 1.0f));
-        shaderProgram.setMat4("transform", trans1);
-
-        // draw the large triangle
-        glBindVertexArray(VAO[0]); 
-        glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw
-
-        // draw the small upside down triangle
-        shaderProgram.setFloat("brightness", 1-colorStrength);
-        glBindVertexArray(VAO[1]); 
-        glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw */
 
         /*
         // draw the bottom pyramid
@@ -268,16 +246,6 @@ int main()
         glBindVertexArray(VAO[3]);
         glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
         */
-
-        /*// draw the top pyramid
-        trans1 = glm::mat4(1.0f);
-        trans1 = glm::translate(trans1, glm::vec3(0.0,0.0,0.5));
-        trans1 = glm::rotate(trans1, glm::f32(glm::radians(180.0)), glm::vec3(1.0, 0.0, 0.0));
-        trans1 = glm::scale(trans1, glm::vec3(0.5));
-        shaderProgram.setMat4("transform", trans1);
-        shaderProgram.setFloat("brightness", 1);
-        glBindVertexArray(VAO[3]);
-        glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);*/
 
         /*
         //draw the gains logo
@@ -326,7 +294,7 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textures[1]);
         glBindVertexArray(VAO[4]);
-        glDrawElements(GL_TRIANGLES, earth.getIndexCount(), GL_UNSIGNED_INT,(void*)0);
+        glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT,(void*)0);
 
         // --- Draw the Moon ---
         planetShaderProgram.use();
@@ -347,15 +315,7 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textures[2]);
         glBindVertexArray(VAO[4]);
-        glDrawElements(GL_TRIANGLES, earth.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
-
-        // draw a sphere with VBO
-        //glActiveTexture(GL_TEXTURE0);
-        //glBindTexture(GL_TEXTURE_2D, gains_texture);
-        //glBindVertexArray(VAO[4]);
-        //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[2]);
-        //glDrawElements(GL_TRIANGLES,earth.getIndexCount(),GL_UNSIGNED_INT,(void*)0);
-
+        glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
 
 
         // render the GUI

@@ -155,8 +155,8 @@ int main()
 
     // --- Create the Gains texture ---
     stbi_set_flip_vertically_on_load(true); // flips images loaded so that 0,0 is on the bottom left corner
-    unsigned int textures[2];
-    glGenTextures(2, textures); // first input is number of textures to generate, 2nd is pointer to texture / texture array
+    unsigned int textures[3];
+    glGenTextures(3, textures); // first input is number of textures to generate, 2nd is pointer to texture / texture array
     int width, height, nrChannels;
     //int gains_width, gains_height, gains_nrChannels;
     unsigned char* gains_image_data = stbi_load("GAINS_Small_White.png", &width, &height, &nrChannels, 0);
@@ -167,6 +167,10 @@ int main()
     unsigned char* earth_image_data = stbi_load("earth2048.bmp", &width, &height, &nrChannels, 0);
     //std::cout << "Earth File Details:" << std::endl << earth_width << std::endl << earth_height << std::endl << earth_nrChannels << std::endl; // for debugging only
     textures[1] = loadTexture(earth_image_data, width, height, nrChannels, textures[1]);
+
+    // --- Create the Moon texture ---
+    unsigned char* moon_image_data = stbi_load("moon1024.bmp", &width, &height, &nrChannels, 0);
+    textures[2] = loadTexture(moon_image_data, width, height, nrChannels, textures[2]);
 
     // Define the pointers to the transformation matrices
     glm::mat4 trans1;
@@ -252,6 +256,7 @@ int main()
         glBindVertexArray(VAO[1]); 
         glDrawArrays(GL_TRIANGLES, 0, 3); //3rd input is the number of vertices to draw */
 
+        /*
         // draw the bottom pyramid
         trans1 = glm::mat4(1.0f);
         trans1 = glm::translate(trans1, glm::vec3(translation[0], translation[1], translation[2]));
@@ -262,6 +267,7 @@ int main()
         shaderProgram.setFloat("brightness", 1);
         glBindVertexArray(VAO[3]);
         glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
+        */
 
         /*// draw the top pyramid
         trans1 = glm::mat4(1.0f);
@@ -273,6 +279,7 @@ int main()
         glBindVertexArray(VAO[3]);
         glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);*/
 
+        /*
         //draw the gains logo
         textureShaderProgram.use();
         textureShaderProgram.setFloat("brightness", 1);
@@ -297,6 +304,7 @@ int main()
         glBindTexture(GL_TEXTURE_2D, textures[0]);
         glBindVertexArray(VAO[2]);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        */
 
 
         // --- Draw the Earth ---
@@ -311,14 +319,35 @@ int main()
         init_trans3 = glm::rotate(init_trans3, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         planetShaderProgram.setMat4("init_trans", init_trans3);
         trans3 = glm::mat4(1.0f);
-        trans3 = glm::rotate(trans3, glm::radians(1 * timeValue), glm::vec3(0.0, 0.0, 1.0));
         trans3 = glm::translate(trans3, glm::vec3(0.0f, 0.0f, 0.0f));
+        trans3 = glm::rotate(trans3, glm::radians((360.0f / 24.0f) * 2 * timeValue), glm::vec3(0.0, 0.0, 1.0));
         trans3 = glm::scale(trans3, glm::vec3(0.5, 0.5, 0.5));
         planetShaderProgram.setMat4("transform", trans3);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textures[1]);
         glBindVertexArray(VAO[4]);
         glDrawElements(GL_TRIANGLES, earth.getIndexCount(), GL_UNSIGNED_INT,(void*)0);
+
+        // --- Draw the Moon ---
+        planetShaderProgram.use();
+        modelLoc = glGetUniformLocation(planetShaderProgram.ID, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        viewLoc = glGetUniformLocation(planetShaderProgram.ID, "view");
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+        init_trans3 = glm::mat4(1.0f);
+        init_trans3 = glm::rotate(init_trans3, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        planetShaderProgram.setMat4("init_trans", init_trans3);
+        trans3 = glm::mat4(1.0f);
+        trans3 = glm::translate(trans3, glm::vec3(1.5f * cos((2*float(M_PI) / 28.0f) * 2 * timeValue), 1.5f * sin((2*float(M_PI) / 28.0f) * 2 * timeValue), 0.0f));
+        trans3 = glm::rotate(trans3, glm::radians((360.0f / 28.0f) * 2 * timeValue), glm::vec3(0.0, 0.0, 1.0));
+        trans3 = glm::scale(trans3, glm::vec3(0.2, 0.2, 0.2));
+        planetShaderProgram.setMat4("transform", trans3);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textures[2]);
+        glBindVertexArray(VAO[4]);
+        glDrawElements(GL_TRIANGLES, earth.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
 
         // draw a sphere with VBO
         //glActiveTexture(GL_TEXTURE0);

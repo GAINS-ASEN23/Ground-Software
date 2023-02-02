@@ -19,6 +19,8 @@
 #include <shader.h>
 #include <Sphere.h>
 
+//#include "BACKEND/data.h" // for testing only
+
 // for image loading and converting to texture functionality
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -127,12 +129,15 @@ int main()
     // Generate shader program with textures from the shader class
     shader planetShaderProgram(vs_Planet_Source, fs_Planet_Source);
 
+    // Generate line shader program from the shader class
+    shader lineShaderProgram(vs_line_source, fs_line_source);
+
     // --- Create the Shaders ---
     unsigned int VBO[5], VAO[5], EBO[3]; // creates VBOs, VAOs, and EBOs
     glGenVertexArrays(5, VAO);
     glGenBuffers(5, VBO);
     glGenBuffers(3, EBO); // EBOs, useful for not needing to declare a vertex multiple times when we make many triangles
-    loadShaderObjects(VBO, VAO, EBO);
+    //loadShaderObjects(VBO, VAO, EBO); // not needed since we don't currently utilize these objects
 
     // Generate a sphere
     Sphere planet(1.0f, 36, 18);           // radius, sectors, stacks, smooth(default)
@@ -167,6 +172,67 @@ int main()
     unsigned char* moon_image_data = stbi_load("moon1024.bmp", &width, &height, &nrChannels, 0);
     textures[2] = loadTexture(moon_image_data, width, height, nrChannels, textures[2]);
 
+
+    // setup line vertices
+    float lineVert[] = {
+        /*-0.25f, -0.25f, 0.0f,
+        0.0f, 0.25f, 0.0f,
+        0.25f, -0.25f, 0.0f,
+        -0.35f, 0.10f, 0.0f,
+        0.35f, 0.10f, 0.0f,
+        - 0.25f, -0.25f, 0.0f,*/
+
+        -1.0f, -1.0f, 0.0f, // 11
+        -0.8f, -1.0f, 0.0f,
+        -0.6f, -1.0f, 0.0f,
+        -0.4f, -1.0f, 0.0f,
+        -0.2f, -1.0f, 0.0f,
+        0.0f, -1.0f, 0.0f,
+        0.2f, -1.0f, 0.0f,
+        0.4f, -1.0f, 0.0f,
+        0.6f, -1.0f, 0.0f,
+        0.8f, -1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+
+        1.0f, -0.8f, 0.0f, // 10
+        1.0f, -0.6f, 0.0f,
+        1.0f, -0.4f, 0.0f,
+        1.0f, -0.2f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        1.0f, 0.2f, 0.0f,
+        1.0f, 0.4f, 0.0f,
+        1.0f, 0.6f, 0.0f,
+        1.0f, 0.8f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        
+        0.8f, 1.0f, 0.0f, // 10
+        0.6f, 1.0f, 0.0f,
+        0.4f, 1.0f, 0.0f,
+        0.2f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        -0.2f, 1.0f, 0.0f,
+        -0.4f, 1.0f, 0.0f,
+        -0.6f, 1.0f, 0.0f,
+        -0.8f, 1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f,
+
+        -1.0f, 0.8f, 0.0f, // 9
+        -1.0f, 0.6f, 0.0f,
+        -1.0f, 0.4f, 0.0f,
+        -1.0f, 0.2f, 0.0f,
+        -1.0f, 0.0f, 0.0f,
+        -1.0f, -0.2f, 0.0f,
+        -1.0f, -0.4f, 0.0f,
+        -1.0f, -0.6f, 0.0f,
+        -1.0f, -0.8f, 0.0f,
+
+    };
+
+    int lineCount = 10;
+    float tempVert[30];
+    //float tempVert[] = {0.0f, 0.0f, 0.0f};
+    int step = 0;
+
     // Define the pointers to the transformation matrices
     glm::mat4 trans1;
     glm::mat4 trans2;
@@ -178,6 +244,7 @@ int main()
     float earth_rotation = 0.0f;
     float moon_rotation = 0.0f;
     float moon_translation[] = { 1.0f, 0.0f, 0.0f };
+    float trajectory_translation[] = { 0.8f, 0.0f, 0.0f };
     bool lock_motion = false;
 
     // Create the model,view, and projection transformation matrices
@@ -192,6 +259,14 @@ int main()
 
     glfwSetCursorPosCallback(window, mouse_callback); // captures mouse movements while the cursor is captured
     glfwSetScrollCallback(window, scroll_callback); // captures mouse scroll wheel actions
+
+    // initialize the spice object
+    /*
+    SPICE spiceFront;
+    std::vector<std::vector<double>> PosVectorMoon2;
+    //PosVectorMoon2 = spiceFront.SpiceCall(date, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE); //why is date undefined?
+    spiceFront.printSpiceData();
+    */
     
 
     // Render loop
@@ -286,6 +361,8 @@ int main()
             moon_rotation = fmod((360.0f / 28.0f) * 2 * timeValue,360);
             moon_translation[0] = (cos((2 * float(M_PI) / 28.0f) * 2 * timeValue));
             moon_translation[1] = (sin((2 * float(M_PI) / 28.0f) * 2 * timeValue));
+            trajectory_translation[0] = cos((2 * float(M_PI) / 28.0f) * 2 * timeValue) - 0.2 * cos((2 * float(M_PI) / 12.0f) * 2 * timeValue);
+            trajectory_translation[1] = sin((2 * float(M_PI) / 28.0f) * 2 * timeValue) - 0.2 * sin((2 * float(M_PI) / 12.0f) * 2 * timeValue);
         }
         
 
@@ -332,8 +409,51 @@ int main()
         glBindVertexArray(VAO[4]);
         glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
 
+        
+        // render a 2D line
+        step++;
+        //std::cout << "------------------------------" << std::endl;
+        //int currentStep = int(std::floor(step / 3)) % (std::size(lineVert) / 3);
+        int currentStep = int(std::floor(timeValue * 10)) % (std::size(lineVert) / 3);
+        int temp;
+        for (int i = 0; i < 3 * lineCount; i++) {
+            temp = i + currentStep * 3;
+            if (temp < (std::size(lineVert))) {
+                tempVert[i] = lineVert[temp];
+            }
+            else {
+                temp = temp - std::size(lineVert);
+                tempVert[i] = lineVert[temp];
+            }
+        }
+        /*for (int i = 0; i < lineCount; i++) {
+            std::cout << tempVert[3*i] << ',' << tempVert[3*i+1] << ',' << tempVert[3*i+2] << std::endl;
+        }
+        std::cout << currentStep << std::endl;*/
 
-        // render the GUI
+        glBindVertexArray(VAO[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(tempVert), tempVert, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); // position attribute
+        glEnableVertexAttribArray(0);
+
+        lineShaderProgram.use();
+        modelLoc = glGetUniformLocation(lineShaderProgram.ID, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        viewLoc = glGetUniformLocation(lineShaderProgram.ID, "view");
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        projectionLoc = glGetUniformLocation(lineShaderProgram.ID, "projection");
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+        //glBindVertexArray(VAO[0]);
+        //glDrawElements(GL_LINES, 3, GL_FLOAT, 0); // does nothing yet
+        glDrawArrays(GL_LINE_STRIP, 0, lineCount);
+        //glDrawArrays(GL_POINTS, 0, 5);
+        
+
+        
+
+        // render the --- GUI --- (Design the GUI here)
         ImGui::Begin("GUI Window");
         ImGui::Button("Earth Centered ImGui Example Window");
         ImGui::Text("Planetary Distances Are Not To Scale");

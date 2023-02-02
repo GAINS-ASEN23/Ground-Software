@@ -14,6 +14,28 @@ const unsigned int SCR_HEIGHT = 600;
 
 // Create the Shader Sources
 // -------------------------
+// Simple 2D Line Shader
+const char* vs_line_source = "#version 330 core\n"
+"layout (location = 0) in vec3 aPos;\n"
+"uniform mat4 model;\n"
+"uniform mat4 view;\n"
+"uniform mat4 projection;\n"
+"out vec3 chosenColor;\n" //color from triangle vertex colors
+"void main()\n"
+"{\n"
+"   gl_Position = projection * view * model * vec4(aPos, 1.0);\n" //don't forget that matrix multiplication goes from right to left
+"   chosenColor = vec3(0.8, 0.0, 0.0);\n"
+"}\0";
+
+const char* fs_line_source = "#version 330 core\n"
+"in vec3 chosenColor;\n"
+"out vec4 FragColor;\n"
+"void main()\n"
+"{\n"
+"   FragColor = vec4(chosenColor, 1.0);\n"
+"}\n\0";
+
+// -------------------------
 // Simple 2D Shaders
 const char* vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"

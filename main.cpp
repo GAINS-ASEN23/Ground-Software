@@ -375,7 +375,7 @@ int main()
         projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
         init_trans3 = glm::mat4(1.0f);
-        init_trans3 = glm::rotate(init_trans3, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //init_trans3 = glm::rotate(init_trans3, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         planetShaderProgram.setMat4("init_trans", init_trans3);
         trans3 = glm::mat4(1.0f);
         trans3 = glm::translate(trans3, glm::vec3(0.0f, 0.0f, 0.0f));
@@ -396,7 +396,7 @@ int main()
         projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
         init_trans3 = glm::mat4(1.0f);
-        init_trans3 = glm::rotate(init_trans3, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //init_trans3 = glm::rotate(init_trans3, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         planetShaderProgram.setMat4("init_trans", init_trans3);
         trans3 = glm::mat4(1.0f);
         trans3 = glm::translate(trans3, glm::vec3(1.5f*moon_translation[0],1.5f*moon_translation[1],moon_translation[2]));

@@ -108,7 +108,7 @@ const char* vs_Planet_Source = "#version 330 core\n"
 "{\n"
 "   gl_Position = projection * view * model * transform * init_trans * vec4(aPos, 1.0);\n"
 "   chosenColor = aNormal;\n"
-"   texCoord = aTexCoord;\n"
+"   texCoord = aTexCoord * vec2(1,-1);\n" // for some reason the spherical shell generates texture coords flipped vertically so we flip it back here
 "}\0";
 
 const char* fs_Planet_Source = "#version 330 core\n"

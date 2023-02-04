@@ -36,8 +36,11 @@
 // Create functions to outline what happens in window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+//void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+
+//glfwSetMouseButtonCallback(window, ImGui_ImplGlfw_MouseButtonCallback)
 
 // temporary spot to initialize the camera position
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -257,7 +260,7 @@ int main()
     glm::vec3 direction;
     yaw = -90.0f;
 
-    glfwSetCursorPosCallback(window, mouse_callback); // captures mouse movements while the cursor is captured
+    //glfwSetCursorPosCallback(window, mouse_callback); // captures mouse movements while the cursor is captured
     glfwSetScrollCallback(window, scroll_callback); // captures mouse scroll wheel actions
 
     // initialize the spice object
@@ -295,6 +298,11 @@ int main()
         view = glm::mat4(1.0f);
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f);
+
+        // Capture Mouse Clicks on ImGui
+        //ImGuiIO& io = ImGui::GetIO();
+        //io.AddMouseButtonEvent(GLFW_MOUSE_BUTTON_LEFT, down);
+        //std::cout << (io.WantCaptureMouse) << std::endl;
 
         // choose the shader program to use
         shaderProgram.use();
@@ -454,9 +462,9 @@ int main()
         
 
         // render the --- GUI --- (Design the GUI here)
-        ImGui::Begin("GUI Window");
+        ImGui::Begin("GUI Window"); // creates the GUI and names it
         ImGui::Button("Earth Centered ImGui Example Window");
-        ImGui::Text("Planetary Distances Are Not To Scale");
+        ImGui::Text("Planetary Distances Are Not To Scale"); // adds a text line to the GUI
         ImGui::Checkbox("Lock Planet Movement",&lock_motion);
         ImGui::SliderFloat("Earth Rotation", &earth_rotation, 0, 360);
         ImGui::SliderFloat3("Moon Position", moon_translation, -1.0, 1.0);
@@ -525,56 +533,62 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+/*void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     ImGuiIO& io = ImGui::GetIO();
     io.AddMouseButtonEvent(GLFW_MOUSE_BUTTON_LEFT, down);
+    //io.AddMouseButtonEvent(GLFW_MOUSE_BUTTON_LEFT, GLFW_PRESS);
     //auto& io = ImGui::GetIO();
     //if (io.WantCaptureMouse || io.WantCaptureKeyboard) {
     //    return;
     //}
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_RELEASE) // this prevents the camera from moving except when we hold the left mouse button
-    {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // captures the cursor in an fps mode type way
-        if (firstMouse)
+    std::cout << (io.WantCaptureMouse) << std::endl;
+    if (!io.WantCaptureMouse) {
+        //return;
+
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_RELEASE) // this prevents the camera from moving except when we hold the left mouse button
         {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // captures the cursor in an fps mode type way
+            if (firstMouse)
+            {
+                lastX = xpos;
+                lastY = ypos;
+                firstMouse = false;
+            }
+
+            float xoffset = xpos - lastX;
+            float yoffset = lastY - ypos;
             lastX = xpos;
             lastY = ypos;
-            firstMouse = false;
+
+            float sensitivity = 0.1f;
+            xoffset *= sensitivity;
+            yoffset *= sensitivity;
+
+            // adjust the global yaw and pitch values
+            yaw += xoffset;
+            pitch += yoffset;
+
+            // limit the vertical movement so we don't have awkward movements
+            if (pitch > 89.0f)
+                pitch = 89.0f;
+            if (pitch < -89.0f)
+                pitch = -89.0f;
+
+            // adjust the screen position from mouse movements. Note that we include yaw and pitch but we ignore roll for now
+            glm::vec3 direction;
+            direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+            direction.y = sin(glm::radians(pitch));
+            direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+            cameraFront = glm::normalize(direction);
         }
-
-        float xoffset = xpos - lastX;
-        float yoffset = lastY - ypos;
-        lastX = xpos;
-        lastY = ypos;
-
-        float sensitivity = 0.1f;
-        xoffset *= sensitivity;
-        yoffset *= sensitivity;
-
-        // adjust the global yaw and pitch values
-        yaw += xoffset;
-        pitch += yoffset;
-
-        // limit the vertical movement so we don't have awkward movements
-        if (pitch > 89.0f)
-            pitch = 89.0f;
-        if (pitch < -89.0f)
-            pitch = -89.0f;
-
-        // adjust the screen position from mouse movements. Note that we include yaw and pitch but we ignore roll for now
-        glm::vec3 direction;
-        direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-        direction.y = sin(glm::radians(pitch));
-        direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-        cameraFront = glm::normalize(direction);
+        else
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); // releases the cursor
+            firstMouse = true;
+        }
     }
-    else
-    {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); // releases the cursor
-        firstMouse = true;
-    }
-}
+}*/
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {

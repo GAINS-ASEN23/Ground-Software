@@ -20,11 +20,13 @@ const char* vs_line_source = "#version 330 core\n"
 "uniform mat4 model;\n"
 "uniform mat4 view;\n"
 "uniform mat4 projection;\n"
+"uniform mat4 transform;\n"
+"uniform vec3 color;\n"
 "out vec3 chosenColor;\n" //color from triangle vertex colors
 "void main()\n"
 "{\n"
-"   gl_Position = projection * view * model * vec4(aPos, 1.0);\n" //don't forget that matrix multiplication goes from right to left
-"   chosenColor = vec3(0.8, 0.0, 0.0);\n"
+"   gl_Position = projection * view * model * transform * vec4(aPos, 1.0);\n" //don't forget that matrix multiplication goes from right to left
+"   chosenColor = color;\n" //vec3(0.8, 0.0, 0.0);\n
 "}\0";
 
 const char* fs_line_source = "#version 330 core\n"
@@ -108,7 +110,7 @@ const char* vs_Planet_Source = "#version 330 core\n"
 "{\n"
 "   gl_Position = projection * view * model * transform * init_trans * vec4(aPos, 1.0);\n"
 "   chosenColor = aNormal;\n"
-"   texCoord = aTexCoord * vec2(1,-1);\n" // for some reason the spherical shell generates texture coords flipped vertically so we flip it back here
+"   texCoord = aTexCoord * vec2(1,-1);\n" // for some reason the spherical shell generates texture coords flipped vertically so we fix it here
 "}\0";
 
 const char* fs_Planet_Source = "#version 330 core\n"

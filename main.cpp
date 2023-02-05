@@ -249,6 +249,7 @@ int main()
     float moon_translation[] = { 1.0f, 0.0f, 0.0f };
     float trajectory_translation[] = { 0.8f, 0.0f, 0.0f };
     bool lock_motion = false;
+    float viewScale = 1;
 
     // Create the model,view, and projection transformation matrices
     glm::mat4 model = glm::mat4(1.0f);
@@ -384,11 +385,12 @@ int main()
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
         init_trans3 = glm::mat4(1.0f);
         //init_trans3 = glm::rotate(init_trans3, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //init_trans3 = glm::scale(init_trans3, glm::vec3(1/viewScale, 1/viewScale, 1/viewScale));
         planetShaderProgram.setMat4("init_trans", init_trans3);
         trans3 = glm::mat4(1.0f);
-        trans3 = glm::translate(trans3, glm::vec3(0.0f, 0.0f, 0.0f));
+        trans3 = glm::translate(trans3, (1/viewScale) * glm::vec3(0.0f, 0.0f, 0.0f));
         trans3 = glm::rotate(trans3, glm::radians(earth_rotation), glm::vec3(0.0, 0.0, 1.0));
-        trans3 = glm::scale(trans3, glm::vec3(0.5, 0.5, 0.5));
+        trans3 = glm::scale(trans3, (1 / viewScale) * glm::vec3(0.5, 0.5, 0.5));
         planetShaderProgram.setMat4("transform", trans3);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textures[1]);
@@ -405,12 +407,13 @@ int main()
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
         init_trans3 = glm::mat4(1.0f);
         //init_trans3 = glm::rotate(init_trans3, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //init_trans3 = glm::scale(init_trans3, glm::vec3(1 / viewScale, 1 / viewScale, 1 / viewScale));
         planetShaderProgram.setMat4("init_trans", init_trans3);
         trans3 = glm::mat4(1.0f);
-        trans3 = glm::translate(trans3, glm::vec3(1.5f*moon_translation[0],1.5f*moon_translation[1],moon_translation[2]));
+        trans3 = glm::translate(trans3, (1/viewScale) * glm::vec3(1.5f*moon_translation[0],1.5f*moon_translation[1],moon_translation[2]));
         //trans3 = glm::translate(trans3, glm::vec3(1.5f * cos((2*float(M_PI) / 28.0f) * 2 * timeValue), 1.5f * sin((2*float(M_PI) / 28.0f) * 2 * timeValue), 0.0f));
         trans3 = glm::rotate(trans3, glm::radians(moon_rotation), glm::vec3(0.0, 0.0, 1.0));
-        trans3 = glm::scale(trans3, glm::vec3(0.125, 0.125, 0.125));
+        trans3 = glm::scale(trans3, (1 / viewScale) * glm::vec3(0.125, 0.125, 0.125));
         planetShaderProgram.setMat4("transform", trans3);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textures[2]);
@@ -453,6 +456,11 @@ int main()
         projectionLoc = glGetUniformLocation(lineShaderProgram.ID, "projection");
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
+        lineShaderProgram.setVec3("color", glm::vec3(0.8,0.0,0.8));
+        trans3 = glm::mat4(1.0f);
+        trans3 = glm::translate(trans3, (1 / viewScale) * glm::vec3(1.0,0.0,0.0));
+        trans3 = glm::scale(trans3, (1 / viewScale) * glm::vec3(1, 1, 1));
+        lineShaderProgram.setMat4("transform", trans3);
         //glBindVertexArray(VAO[0]);
         //glDrawElements(GL_LINES, 3, GL_FLOAT, 0); // does nothing yet
         glDrawArrays(GL_LINE_STRIP, 0, lineCount);
@@ -460,12 +468,12 @@ int main()
         
 
         
-
         // render the --- GUI --- (Design the GUI here)
         ImGui::Begin("GUI Window"); // creates the GUI and names it
         ImGui::Button("Earth Centered ImGui Example Window");
         ImGui::Text("Planetary Distances Are Not To Scale"); // adds a text line to the GUI
         ImGui::Checkbox("Lock Planet Movement",&lock_motion);
+        ImGui::SliderFloat("Scale", &viewScale, 0.1, 10);
         ImGui::SliderFloat("Earth Rotation", &earth_rotation, 0, 360);
         ImGui::SliderFloat3("Moon Position", moon_translation, -1.0, 1.0);
         ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);
@@ -599,7 +607,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     fov -= (float)yoffset;
     if (fov < 1.0f)
         fov = 1.0f;
-    if (fov > 45.0f)
+    if (fov > 45.0f) // 45.0f is the normal limit
         fov = 45.0f;
 }
 

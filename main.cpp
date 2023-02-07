@@ -10,7 +10,6 @@
 #include "Libraries/include/ImGui/imgui.h"
 #include "Libraries/include/ImGui/imgui_impl_glfw.h"
 #include "Libraries/include/ImGui/imgui_impl_opengl3.h"
-//#include "Libraries/include/ImGui/imgui_impl_opengl3_loader.h" // I am unsure if this is needed as an #include
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -36,11 +35,11 @@
 // Create functions to outline what happens in window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
-//void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 
-//glfwSetMouseButtonCallback(window, ImGui_ImplGlfw_MouseButtonCallback)
+//glfwSetMouseButtonCallback(GLFWwindow* window, ImGui_ImplGlfw_MouseButtonCallback);
 
 // temporary spot to initialize the camera position
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -111,6 +110,10 @@ int main()
     SPICE spiceOBJ;
     // Test Function from sub files 
     spiceOBJ.printSpiceData();
+
+    glfwSetCursorPosCallback(window, mouse_callback); // captures mouse movements while the cursor is captured
+    glfwSetScrollCallback(window, scroll_callback); // captures mouse scroll wheel actions
+
 
     // Setup the GUI
     IMGUI_CHECKVERSION();
@@ -261,16 +264,89 @@ int main()
     glm::vec3 direction;
     yaw = -90.0f;
 
-    //glfwSetCursorPosCallback(window, mouse_callback); // captures mouse movements while the cursor is captured
-    glfwSetScrollCallback(window, scroll_callback); // captures mouse scroll wheel actions
-
     // initialize the spice object
-    /*
+
+    
+    std::vector<std::string> date2 =
+    {
+        "2022 October 01, 13:00:00 PST",
+        "2022 October 02, 13:00:00 PST",
+        "2022 October 03, 13:00:00 PST",
+        "2022 October 04, 13:00:00 PST",
+        "2022 October 05, 13:00:00 PST",
+        "2022 October 06, 13:00:00 PST",
+        "2022 October 07, 13:00:00 PST",
+        "2022 October 08, 13:00:00 PST",
+        "2022 October 09, 13:00:00 PST",
+        "2022 October 10, 13:00:00 PST",
+        "2022 October 11, 13:00:00 PST",
+        "2022 October 12, 13:00:00 PST",
+        "2022 October 13, 13:00:00 PST",
+        "2022 October 14, 13:00:00 PST",
+        "2022 October 15, 13:00:00 PST",
+        "2022 October 16, 13:00:00 PST",
+        "2022 October 17, 13:00:00 PST",
+        "2022 October 18, 13:00:00 PST",
+        "2022 October 19, 13:00:00 PST",
+        "2022 October 20, 13:00:00 PST",
+        "2022 October 21, 13:00:00 PST",
+        "2022 October 22, 13:00:00 PST",
+        "2022 October 23, 13:00:00 PST",
+        "2022 October 24, 13:00:00 PST",
+        "2022 October 24, 13:00:00 PST",
+        "2022 October 26, 13:00:00 PST",
+        "2022 October 27, 13:00:00 PST",
+        "2022 October 28, 13:00:00 PST",
+        "2022 October 29, 13:00:00 PST",
+        "2022 October 30, 13:00:00 PST",
+        "2022 October 31, 13:00:00 PST",
+        "2022 November 01, 13:00:00 PST",
+        "2022 November 02, 13:00:00 PST",
+        "2022 November 03, 13:00:00 PST",
+        "2022 November 04, 13:00:00 PST",
+        "2022 November 05, 13:00:00 PST",
+        "2022 November 06, 13:00:00 PST",
+        "2022 November 07, 13:00:00 PST",
+        "2022 November 08, 13:00:00 PST",
+        "2022 November 09, 13:00:00 PST",
+        "2022 November 10, 13:00:00 PST",
+        "2022 November 11, 13:00:00 PST",
+        "2022 November 12, 13:00:00 PST",
+        "2022 November 13, 13:00:00 PST",
+        "2022 November 14, 13:00:00 PST",
+        "2022 November 15, 13:00:00 PST",
+        "2022 November 16, 13:00:00 PST",
+        "2022 November 17, 13:00:00 PST",
+        "2022 November 18, 13:00:00 PST",
+        "2022 November 19, 13:00:00 PST",
+        "2022 November 20, 13:00:00 PST",
+        "2022 November 21, 13:00:00 PST",
+        "2022 November 22, 13:00:00 PST",
+        "2022 November 23, 13:00:00 PST",
+        "2022 November 24, 13:00:00 PST",
+        "2022 November 24, 13:00:00 PST",
+        "2022 November 26, 13:00:00 PST",
+        "2022 November 27, 13:00:00 PST",
+        "2022 November 28, 13:00:00 PST",
+        "2022 November 29, 13:00:00 PST",
+        "2022 November 30, 13:00:00 PST"
+    }; 
+    
+    
+    
     SPICE spiceFront;
     std::vector<std::vector<double>> PosVectorMoon2;
     //PosVectorMoon2 = spiceFront.SpiceCall(date, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE); //why is date undefined?
-    spiceFront.printSpiceData();
-    */
+    std::cout << std::endl;
+    std::cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << std::endl;
+    std::cout << std::endl;
+    PosVectorMoon2 = spiceFront.SpiceCall(date2, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
+    //spiceFront.printSpiceData();
+
+    std::cout << std::endl;
+    std::cout << "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO" << std::endl;
+    std::cout << std::endl; 
+    
     
 
     // Render loop
@@ -302,8 +378,11 @@ int main()
 
         // Capture Mouse Clicks on ImGui
         //ImGuiIO& io = ImGui::GetIO();
-        //io.AddMouseButtonEvent(GLFW_MOUSE_BUTTON_LEFT, down);
+        //io.AddMouseButtonEvent(GLFW_MOUSE_BUTTON_LEFT, false); //false makes it activate on click, true makes it drag instead
         //std::cout << (io.WantCaptureMouse) << std::endl;
+        //if (!io.WantCaptureMouse) {
+
+        //}
 
         // choose the shader program to use
         shaderProgram.use();
@@ -519,17 +598,17 @@ void processInput(GLFWwindow* window)
     // take in keyboard presses to move the camera
     //const float cameraSpeed = 0.05f; // adjust accordingly
     float cameraSpeed = 2.5f * deltaTime;
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraUp;
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraUp;
 }
 
@@ -541,10 +620,10 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-/*void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     ImGuiIO& io = ImGui::GetIO();
-    io.AddMouseButtonEvent(GLFW_MOUSE_BUTTON_LEFT, down);
+    //io.AddMouseButtonEvent(GLFW_MOUSE_BUTTON_LEFT, down);
     //io.AddMouseButtonEvent(GLFW_MOUSE_BUTTON_LEFT, GLFW_PRESS);
     //auto& io = ImGui::GetIO();
     //if (io.WantCaptureMouse || io.WantCaptureKeyboard) {
@@ -596,7 +675,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
             firstMouse = true;
         }
     }
-}*/
+}
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {

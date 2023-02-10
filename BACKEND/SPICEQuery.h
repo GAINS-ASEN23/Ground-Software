@@ -21,5 +21,6 @@ class SPICE
 {       
 	public:            
 		std::vector<std::vector<double>>SpiceCall(std::vector<std::string> date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration);	// Function for querying into SPICE SPK file
-		void printSpiceData(); // Function to print SPICE data
+		void printExampleSpiceData(); // Function to print SPICE data
+		void printSpiceData(std::vector<std::vector<double>> PosVector); // Function to print SPICE data
 };

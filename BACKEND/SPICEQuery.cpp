@@ -55,7 +55,7 @@ std::vector<std::vector<double>>SPICE::SpiceCall(std::vector<std::string> date, 
 	return PosVector;
 }
 
-void SPICE::printSpiceData() 
+void SPICE::printExampleSpiceData() 
 {
 	// Create the Position Arrays of Moon and Sun
 	std::vector<std::vector<double>> PosVectorMoon;
@@ -75,4 +75,15 @@ void SPICE::printSpiceData()
 	for (size_t j = PosVectorSun.size(); j-- > 0; ) {
 		printf("\n Main Position (km) = (%g, %g, %g)\n", PosVectorSun.at(j).at(0), PosVectorSun.at(j).at(1), PosVectorSun.at(j).at(2));
 	}
+}
+
+void SPICE::printSpiceData(std::vector<std::vector<double>> PosVector)
+{
+
+	std::cout << "Spice Position - J2000 EARTH CENTER \n";
+
+	for (size_t j = PosVector.size(); j-- > 0; ) {
+		printf("\n Main Position (km) = (%g, %g, %g)\n", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
+	}
+
 }

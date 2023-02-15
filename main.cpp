@@ -6,6 +6,8 @@
 
 #include <main.h>
 
+// ToDo: Add in real scaling aka in km. Add in multiple mode options
+
 //----- Setup -----
 
 // Create functions to outline what happens in window
@@ -34,6 +36,10 @@ float fov = 45.0f;
 // sense if the mouse is over the gui
 bool down;
 
+// set the mode that the GUI and orbital simulation is in
+// 0 = orbital simulation, 1 = free movement, 2 = first testing mode
+int simMode = 0;
+
 // define utility functions
 unsigned int loadTexture(unsigned char* image_data, int width, int height, int nrChannels, unsigned int texture);
 
@@ -52,9 +58,9 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Apple Compatibility - Needs to be tested
-    #ifdef __APPLE__
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    #endif
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
     // Create the GUI window
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GAINS Ground Software", NULL, NULL);
@@ -127,6 +133,9 @@ int main()
     unsigned char* gains_image_data = stbi_load("GAINS_Small_White.png", &width, &height, &nrChannels, 0);
     textures[0] = loadTexture(gains_image_data, width, height, nrChannels, textures[0]);
 
+    // orbital simulation mode preparations
+    if (simMode == 0) {
+
     // --- Create the Earth texture ---
     stbi_set_flip_vertically_on_load(false);
     unsigned char* earth_image_data = stbi_load("earth2048.bmp", &width, &height, &nrChannels, 0);
@@ -136,6 +145,8 @@ int main()
     // --- Create the Moon texture ---
     unsigned char* moon_image_data = stbi_load("moon1024.bmp", &width, &height, &nrChannels, 0);
     textures[2] = loadTexture(moon_image_data, width, height, nrChannels, textures[2]);
+
+    }
 
 
     // setup line vertices
@@ -202,6 +213,8 @@ int main()
     float trajectory_translation[] = { 0.8f, 0.0f, 0.0f };
     bool lock_motion = false;
     float viewScale = 1;
+    float timeScale = 1;
+    float actualScale = 10e6;
     int lineCount = 10;
     float tempVert[30];
     int step = 0;
@@ -211,6 +224,9 @@ int main()
     model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     glm::mat4 view = glm::mat4(1.0f);
     glm::mat4 projection;
+    int modelLoc;
+    int viewLoc;
+    int projectionLoc;
 
     // camera directions
     glm::vec3 direction;
@@ -287,6 +303,15 @@ int main()
     //std::cout << "\n XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \n" << std::endl;
     PosVectorMoon2 = spiceFront.SpiceCall(date, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
     spiceFront.printSpiceData(PosVectorMoon2);
+    float spiceTemp[30];
+    for (int i = 0; i < 30; i = i + 3) {
+        spiceTemp[i] = PosVectorMoon2.at(i).at(0);
+        spiceTemp[i+1] = PosVectorMoon2.at(i).at(1);
+        spiceTemp[i+2] = PosVectorMoon2.at(i).at(2);
+    }
+    for (int i = 0; i < 30; i = i + 3) {
+        printf(" %f, %f, %f \n",spiceTemp[i],spiceTemp[i+1],spiceTemp[i+2]);
+    }
     //std::cout << "\n OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO \n" << std::endl;
     
 
@@ -317,61 +342,114 @@ int main()
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f);
 
-        // update the uniform color
+        // get the current glfw time value
         float timeValue = glfwGetTime();
 
-        // calculate the correct Planet position and rotation values
-        if (lock_motion == false) {
-            earth_rotation = fmod((360.0f / 24.0f) * 2 * timeValue,360);
-            moon_rotation = fmod((360.0f / 28.0f) * 2 * timeValue,360);
-            moon_translation[0] = (cos((2 * float(M_PI) / 28.0f) * 2 * timeValue));
-            moon_translation[1] = (sin((2 * float(M_PI) / 28.0f) * 2 * timeValue));
-            trajectory_translation[0] = cos((2 * float(M_PI) / 28.0f) * 2 * timeValue) - 0.2 * cos((2 * float(M_PI) / 12.0f) * 2 * timeValue);
-            trajectory_translation[1] = sin((2 * float(M_PI) / 28.0f) * 2 * timeValue) - 0.2 * sin((2 * float(M_PI) / 12.0f) * 2 * timeValue);
+        // draw objects for orbital simulation mode
+        if (simMode == 0) {
+
+            // calculate the correct Planet position and rotation values
+            if (lock_motion == false) {
+                earth_rotation = fmod((360.0f / 24.0f) * 2 * timeValue, 360);
+                moon_rotation = fmod((360.0f / 28.0f) * 2 * timeValue, 360);
+                moon_translation[0] = (cos((2 * float(M_PI) / 28.0f) * 2 * timeValue));
+                moon_translation[1] = (sin((2 * float(M_PI) / 28.0f) * 2 * timeValue));
+                trajectory_translation[0] = cos((2 * float(M_PI) / 28.0f) * 2 * timeValue) - 0.2 * cos((2 * float(M_PI) / 12.0f) * 2 * timeValue);
+                trajectory_translation[1] = sin((2 * float(M_PI) / 28.0f) * 2 * timeValue) - 0.2 * sin((2 * float(M_PI) / 12.0f) * 2 * timeValue);
+            }
+
+            // --- Draw the Earth ---
+            planetShaderProgram.use();
+            modelLoc = glGetUniformLocation(planetShaderProgram.ID, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            viewLoc = glGetUniformLocation(planetShaderProgram.ID, "view");
+            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
+            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+            init_trans3 = glm::mat4(1.0f); // this may not be needed any longer
+            planetShaderProgram.setMat4("init_trans", init_trans3);
+            trans3 = glm::mat4(1.0f);
+            trans3 = glm::translate(trans3, (1 / viewScale) * glm::vec3(0.0f, 0.0f, 0.0f));
+            trans3 = glm::rotate(trans3, glm::radians(earth_rotation), glm::vec3(0.0, 0.0, 1.0));
+            trans3 = glm::scale(trans3, (1 / viewScale) * (1 / actualScale) * 6371 * glm::vec3(1, 1, 1));
+            planetShaderProgram.setMat4("transform", trans3);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, textures[1]);
+            glBindVertexArray(VAO[1]);
+            glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
+
+
+            // --- Draw Spice Data ---
+            std::cout << "--------------" << std::endl;
+            //printf("Size of PosVectorMoon2 = %d \n", std::size(PosVectorMoon2));
+            step++;
+            int currentStep2 = int(std::floor(timeValue * timeScale)) % (std::size(PosVectorMoon2));
+            //printf("currentStep2 = %d \n", currentStep2);
+            int temp2;
+            for (int i = 0; i < lineCount; i++) {
+                temp2 = i + currentStep2;
+                //printf("temp 2 = %d \n", temp2);
+                if (temp2 < (std::size(PosVectorMoon2))) {
+                    spiceTemp[i * 3] = PosVectorMoon2.at(temp2).at(0);
+                    spiceTemp[i * 3 + 1] = PosVectorMoon2.at(temp2).at(1);
+                    spiceTemp[i * 3 + 2] = PosVectorMoon2.at(temp2).at(2);
+                }
+                else {
+                    temp2 = temp2 - std::size(PosVectorMoon2);
+                    spiceTemp[i * 3] = PosVectorMoon2.at(temp2).at(0);
+                    spiceTemp[i * 3 + 1] = PosVectorMoon2.at(temp2).at(1);
+                    spiceTemp[i * 3 + 2] = PosVectorMoon2.at(temp2).at(2);
+                }
+            }
+            glBindVertexArray(VAO[0]);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(spiceTemp), spiceTemp, GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); // position attribute
+            glEnableVertexAttribArray(0);
+            lineShaderProgram.use();
+            modelLoc = glGetUniformLocation(lineShaderProgram.ID, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            viewLoc = glGetUniformLocation(lineShaderProgram.ID, "view");
+            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            projectionLoc = glGetUniformLocation(lineShaderProgram.ID, "projection");
+            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+            lineShaderProgram.setVec3("color", glm::vec3(0.8, 0.0, 0.0));
+            trans3 = glm::mat4(1.0f);
+            trans3 = glm::translate(trans3, (1 / actualScale) * glm::vec3(1.0, 0.0, 0.0));
+            trans3 = glm::scale(trans3, (1 / actualScale) * glm::vec3(1, 1, 1));
+            lineShaderProgram.setMat4("transform", trans3);
+            glDrawArrays(GL_LINE_STRIP, 0, lineCount);
+            printf(" %f, %f, %f \n", (1 / actualScale)*spiceTemp[0], (1 / actualScale)*spiceTemp[1], (1 / actualScale)*spiceTemp[2]);
+            //printf("Outer size = %d \n", std::size(PosVectorMoon2));
+            //printf("Inner size = %d \n", PosVectorMoon2.at(0).size());
+
+            // --- Draw the Moon ---
+            planetShaderProgram.use();
+            modelLoc = glGetUniformLocation(planetShaderProgram.ID, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            viewLoc = glGetUniformLocation(planetShaderProgram.ID, "view");
+            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
+            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+            init_trans3 = glm::mat4(1.0f); // this may not be needed any longer
+            planetShaderProgram.setMat4("init_trans", init_trans3);
+            trans3 = glm::mat4(1.0f);
+            trans3 = glm::translate(trans3, (1 / actualScale) * glm::vec3(spiceTemp[27], spiceTemp[28], spiceTemp[29]));
+            //printf("Row 1 = %f, %f, %f, %f \n", trans3[0][0], trans3[0][1], trans3[0][2], trans3[0][3]);
+            //printf("Row 2 = %f, %f, %f, %f \n", trans3[1][0], trans3[1][1], trans3[1][2], trans3[1][3]);
+            //printf("Row 3 = %f, %f, %f, %f \n", trans3[2][0], trans3[2][1], trans3[2][2], trans3[2][3]);
+            //printf("Row 4 = %f, %f, %f, %f \n", trans3[3][0], trans3[3][1], trans3[3][2], trans3[3][3]);
+            //trans3 = glm::translate(trans3, glm::vec3(1.5f * cos((2*float(M_PI) / 28.0f) * 2 * timeValue), 1.5f * sin((2*float(M_PI) / 28.0f) * 2 * timeValue), 0.0f));
+            trans3 = glm::rotate(trans3, glm::radians(moon_rotation), glm::vec3(0.0, 0.0, 1.0));
+            trans3 = glm::scale(trans3, (1 / viewScale) * (1 / actualScale) * 1737.4f * glm::vec3(1, 1, 1));
+            planetShaderProgram.setMat4("transform", trans3);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, textures[2]);
+            glBindVertexArray(VAO[1]);
+            glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
         }
         
-        // --- Draw the Earth ---
-        planetShaderProgram.use();
-        int modelLoc = glGetUniformLocation(planetShaderProgram.ID, "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        int viewLoc = glGetUniformLocation(planetShaderProgram.ID, "view");
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        int projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
-        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-        init_trans3 = glm::mat4(1.0f); // this may not be needed any longer
-        planetShaderProgram.setMat4("init_trans", init_trans3);
-        trans3 = glm::mat4(1.0f);
-        trans3 = glm::translate(trans3, (1/viewScale) * glm::vec3(0.0f, 0.0f, 0.0f));
-        trans3 = glm::rotate(trans3, glm::radians(earth_rotation), glm::vec3(0.0, 0.0, 1.0));
-        trans3 = glm::scale(trans3, (1 / viewScale) * glm::vec3(0.5, 0.5, 0.5));
-        planetShaderProgram.setMat4("transform", trans3);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, textures[1]);
-        glBindVertexArray(VAO[1]);
-        glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT,(void*)0);
-
-        // --- Draw the Moon ---
-        planetShaderProgram.use();
-        modelLoc = glGetUniformLocation(planetShaderProgram.ID, "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        viewLoc = glGetUniformLocation(planetShaderProgram.ID, "view");
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
-        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-        init_trans3 = glm::mat4(1.0f); // this may not be needed any longer
-        planetShaderProgram.setMat4("init_trans", init_trans3);
-        trans3 = glm::mat4(1.0f);
-        trans3 = glm::translate(trans3, (1/viewScale) * glm::vec3(1.5f*moon_translation[0],1.5f*moon_translation[1],moon_translation[2]));
-        //trans3 = glm::translate(trans3, glm::vec3(1.5f * cos((2*float(M_PI) / 28.0f) * 2 * timeValue), 1.5f * sin((2*float(M_PI) / 28.0f) * 2 * timeValue), 0.0f));
-        trans3 = glm::rotate(trans3, glm::radians(moon_rotation), glm::vec3(0.0, 0.0, 1.0));
-        trans3 = glm::scale(trans3, (1 / viewScale) * glm::vec3(0.125, 0.125, 0.125));
-        planetShaderProgram.setMat4("transform", trans3);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, textures[2]);
-        glBindVertexArray(VAO[1]);
-        glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
-
-        
+        /*
         // Calculate the current points to show on the 2D line
         step++;
         int currentStep = int(std::floor(timeValue * 10)) % (std::size(lineVert) / 3);
@@ -402,18 +480,21 @@ int main()
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
         lineShaderProgram.setVec3("color", glm::vec3(0.8,0.0,0.8));
         trans3 = glm::mat4(1.0f);
-        trans3 = glm::translate(trans3, (1 / viewScale) * glm::vec3(1.0,0.0,0.0));
+        trans3 = glm::translate(trans3, (1 / viewScale) * glm::vec3(0.0,0.0,0.0));
         trans3 = glm::scale(trans3, (1 / viewScale) * glm::vec3(1, 1, 1));
         lineShaderProgram.setMat4("transform", trans3);
         glDrawArrays(GL_LINE_STRIP, 0, lineCount);
-        
+        */
 
         // render the --- GUI --- (Design the GUI here)
         ImGui::Begin("GUI Window"); // creates the GUI and names it
         ImGui::Button("Earth Centered ImGui Example Window");
         ImGui::Text("Planetary Distances Are Not To Scale"); // adds a text line to the GUI
         ImGui::Checkbox("Lock Planet Movement",&lock_motion);
+        //ImGui::SliderFloat("Test", &actualScale, .1, 1, "%.3g", 10);
+        ImGui::SliderFloat("Actual Log Scale", &actualScale, 10e3, 10e9, "%1.0f", ImGuiSliderFlags_Logarithmic);
         ImGui::SliderFloat("Scale", &viewScale, 0.1, 10);
+        ImGui::SliderFloat("Time Scale", &timeScale, 0.1, 10);
         ImGui::SliderFloat("Earth Rotation", &earth_rotation, 0, 360);
         ImGui::SliderFloat3("Moon Position", moon_translation, -1.0, 1.0);
         ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);

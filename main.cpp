@@ -410,8 +410,6 @@ int main()
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once);
-        ImGui::SetNextWindowSize({ 400,160 }, ImGuiCond_Once);
 
         // keep track of how long it takes to render each frame
         float currentFrame = glfwGetTime();
@@ -440,15 +438,6 @@ int main()
                 }
             }
 
-            // calculate the Planet position and rotation values
-            /*if (lock_motion == false) {
-                earth_rotation = fmod((360.0f / 24.0f) * 2 * timeValue, 360);
-                moon_rotation = fmod((360.0f / 28.0f) * 2 * timeValue, 360);
-                moon_translation[0] = (cos((2 * float(M_PI) / 28.0f) * 2 * timeValue));
-                moon_translation[1] = (sin((2 * float(M_PI) / 28.0f) * 2 * timeValue));
-                trajectory_translation[0] = cos((2 * float(M_PI) / 28.0f) * 2 * timeValue) - 0.2 * cos((2 * float(M_PI) / 12.0f) * 2 * timeValue);
-                trajectory_translation[1] = sin((2 * float(M_PI) / 28.0f) * 2 * timeValue) - 0.2 * sin((2 * float(M_PI) / 12.0f) * 2 * timeValue);
-            }*/
             float earthScale = viewScale * (1 / actualScale) * 6371;
             if (earthScale > 0.025) {
                 // --- Draw the Earth ---
@@ -665,6 +654,8 @@ int main()
         */
 
         // render the --- GUI --- (Design the GUI here)
+        ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
+        ImGui::SetNextWindowSize({ 400,160 }, ImGuiCond_Once); // ImGui Window width and window height
         ImGui::Begin("GUI Window"); // creates the GUI and names it
         ImGui::Button("Earth Centered ImGui Example Window");
         ImGui::Text("Planetary Distances Are Not To Scale"); // adds a text line to the GUI
@@ -675,7 +666,24 @@ int main()
         ImGui::SliderFloat("Earth Rotation", &earth_rotation, 0, 360);
         ImGui::SliderFloat3("Moon Position", moon_translation, -1.0, 1.0);
         ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);
+        ImGui::End();
 
+        // Make new window to overlay information onto the screen such as text or a reference distance bar (like 1 km)
+        // will need to update to adjust window autmatically when openGL window size is changed. 
+        //    Will need to adjust openGL coords (-1 to 1) of objects into ImGui pixel coords when tracking objects with icons
+        ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
+        ImGui::SetNextWindowSize({ 800,600 }, ImGuiCond_Once); // ImGui Window width and window height
+        ImGui::Begin("Drawlist Window", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground); // creates the GUI and names it
+        ImDrawList* myDrawList = ImGui::GetWindowDrawList(); 
+        //myDrawList->AddLine(ImVec2(0,0),ImVec2(400,300),ImColor(1.0f,0.2f,0.2f,1.0f),1.0f); // test line
+        myDrawList->AddText(ImVec2(400,300), ImColor(1.0f, 1.0f, 1.0f, 1.0f),"Earth");
+        myDrawList->AddText(ImVec2(200, 300), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "Moon");
+        myDrawList->AddText(ImVec2(675, 520), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e6 km");
+        ImVec2 a = ImVec2(650,550);
+        ImVec2 b = ImVec2(750,550);
+        myDrawList->AddLine(a, b, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Center Line
+        myDrawList->AddLine(ImVec2(a[0], a[1] - 10), ImVec2(a[0], a[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Left Verticle Line
+        myDrawList->AddLine(ImVec2(b[0], b[1] - 10), ImVec2(b[0], b[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Right Verticle Line
         ImGui::End();
 
         // Render dear imgui into screen

@@ -20,5 +20,15 @@ int main()
     m(1, 1) = m(1, 0) + m(0, 1);
     std::cout << m << std::endl;
 
+	/*
+	SPICE spiceObj;
+	
+	std::vector<std::vector<double>> Moon;
+	std::vector<std::vector<double>> Sun;
+
+	// Space Object Earth Frame Positions
+	Moon = spiceObj.SpiceCallIndiv(dateEx, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
+	Sun = spiceObj.SpiceCallIndiv(dateEx, Spice::ObjectID::SUN, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
+	*/
     return 0;
 }

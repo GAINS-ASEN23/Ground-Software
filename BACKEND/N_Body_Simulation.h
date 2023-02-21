@@ -4,9 +4,14 @@
 * Purpose: This file is for the code headers pertaining to the N-Body Simulation
 */
 
-#pragma once
+#ifndef NBODYSIM_H
+#define NBODYSIM_H
+
+#include "..\Libraries\include\Eigen\Dense"
 
 class NBODYSIM
 {
 
 };
+
+#endif

@@ -9,6 +9,13 @@
 
 using namespace Spice;
 
+/*
+* 
+*	FUNCTION NAME:	SpiceCall
+* 
+*	SUMMARY: This function queries the SPICE data to create a position vector for each individual planet at the designated timestamps
+* 
+*/
 std::vector<std::vector<double>>SPICE::SpiceCall(std::vector<std::string> date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration)
 {
 	// Define Vector for return

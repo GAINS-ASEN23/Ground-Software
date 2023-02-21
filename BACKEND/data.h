@@ -3,7 +3,8 @@
 * Authors: Derek Popich
 * Purpose: This file is ONLY for testing of SPICE functions and providing data for test. 
 */
-#pragma once
+#ifndef DATA_H
+#define DATA_H
 
 std::vector<std::string> date =
 { 
@@ -69,3 +70,5 @@ std::vector<std::string> date =
 	"2022 November 29, 13:00:00 PST",
 	"2022 November 30, 13:00:00 PST"
 };
+
+#endif

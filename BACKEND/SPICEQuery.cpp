@@ -62,6 +62,54 @@ std::vector<std::vector<double>>SPICE::SpiceCall(std::vector<std::string> date, 
 	return PosVector;
 }
 
+/*
+*
+*	FUNCTION NAME:	SpiceCallIndiv
+*
+*	SUMMARY: This function queries the SPICE data to create a position vector with the Eigen Matrix Library for each individual space object at the designated timestamps
+*
+*/
+Eigen::RowVector3d SPICE::SpiceCallIndiv(std::string date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration)
+{
+	// Create a class which keeps track of loaded kernels
+	// kernels will be unloaded once this instance goes out of scope
+	KernelSet Kernels{};
+	Kernels.LoadAuxillary("naif0012.tls"); // Load naif0012.tls
+	Kernels.LoadEphemeris("de440.bsp");    // Load de430.bsp
+
+	// Display any thrown errors and exit
+	if (Kernels.HasFailed() == true)
+	{
+		for (const auto& Message : Kernels.GetErrorLog())
+		{
+			puts(Message.data());
+		}
+	}
+
+	// Define some "constant" inputs to an ephemeris calculation
+	EphemerisInputs Inputs = EphemerisInputs{ GetObjectString(Object), GetFrameString(Frame), GetObjectString(Reference), GetAbCorrectionString(Aberration) };
+
+	// Convert a date to an epoch time
+	// Refer to the Spice str2et_c documentation for a description of
+	// valid string inputs
+	double EpochTime = Date2Epoch(date);
+
+	// Calculate the ephemeris of the moon, relative to the centre of the earth in the J2000
+	// reference frame
+	EphemerisState State = CalcEphemerisState(Inputs, EpochTime);
+
+	// Catch any errors from a failed calculation
+	if (State.CalculationSuccess == false)
+	{
+		puts(GetErrorAndReset().c_str());
+	}
+
+	// Define Vector for return
+	Eigen::RowVector3d PosVector {State.PosX, State.PosY, State.PosZ};
+
+	return PosVector;
+}
+
 void SPICE::printExampleSpiceData() 
 {
 	// Create the Position Arrays of Moon and Sun

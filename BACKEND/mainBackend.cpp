@@ -9,26 +9,14 @@
 
 #include "mainBackend.h"
 
-using Eigen::MatrixXd;
-
 int main()
 {
-    MatrixXd m(2, 2);
-    m(0, 0) = 3;
-    m(1, 0) = 2.5;
-    m(0, 1) = -1;
-    m(1, 1) = m(1, 0) + m(0, 1);
-    std::cout << m << std::endl;
-
-	/*
 	SPICE spiceObj;
 	
-	std::vector<std::vector<double>> Moon;
-	std::vector<std::vector<double>> Sun;
+	// Create the Position Arrays of Moon and Sun
+	Eigen::RowVector3d PosVectorMoon = spiceObj.SpiceCallIndiv(dateEx, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
 
-	// Space Object Earth Frame Positions
-	Moon = spiceObj.SpiceCallIndiv(dateEx, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
-	Sun = spiceObj.SpiceCallIndiv(dateEx, Spice::ObjectID::SUN, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
-	*/
+	std::cout << "MAINTEST Main Position (km) = " << PosVectorMoon << std::endl;
+
     return 0;
 }

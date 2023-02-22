@@ -11,12 +11,5 @@
 
 int main()
 {
-	SPICE spiceObj;
-	
-	// Create the Position Arrays of Moon and Sun
-	Eigen::RowVector3d PosVectorMoon = spiceObj.SpiceCallIndiv(dateEx, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
-
-	std::cout << "MAINTEST Main Position (km) = " << PosVectorMoon << std::endl;
-
     return 0;
 }

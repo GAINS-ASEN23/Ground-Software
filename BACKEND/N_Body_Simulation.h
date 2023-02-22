@@ -16,7 +16,7 @@ class NBODYSIM
 {
 	public:
 		// NBODY Functions
-		Eigen::RowVector3d NBODYFUNC(float dt, std::string date, Eigen::RowVector3d v_vec_0, Eigen::RowVector3d r_vec_0);
+		std::vector<std::vector<double>> NBODYFUNC_SEMSC(float totTime, float dt, std::string date_0, Eigen::RowVector3d v_vec_0, Eigen::RowVector3d r_vec_0);
 
 		// Integrators
 		Eigen::RowVector3d Integrator_1(float dt);

@@ -69,7 +69,7 @@ std::vector<std::vector<double>>SPICE::SpiceCall(std::vector<std::string> date, 
 *	SUMMARY: This function queries the SPICE data to create a position vector with the Eigen Matrix Library for each individual space object at the designated timestamps
 *
 */
-Eigen::RowVector3d SPICE::SpiceCallIndiv(std::string date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration)
+Eigen::RowVector3d SPICE::SpiceCallIndiv(float epochTime, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration)
 {
 	// Create a class which keeps track of loaded kernels
 	// kernels will be unloaded once this instance goes out of scope
@@ -89,14 +89,9 @@ Eigen::RowVector3d SPICE::SpiceCallIndiv(std::string date, Spice::ObjectID Objec
 	// Define some "constant" inputs to an ephemeris calculation
 	EphemerisInputs Inputs = EphemerisInputs{ GetObjectString(Object), GetFrameString(Frame), GetObjectString(Reference), GetAbCorrectionString(Aberration) };
 
-	// Convert a date to an epoch time
-	// Refer to the Spice str2et_c documentation for a description of
-	// valid string inputs
-	double EpochTime = Date2Epoch(date);
-
 	// Calculate the ephemeris of the moon, relative to the centre of the earth in the J2000
 	// reference frame
-	EphemerisState State = CalcEphemerisState(Inputs, EpochTime);
+	EphemerisState State = CalcEphemerisState(Inputs, epochTime);
 
 	// Catch any errors from a failed calculation
 	if (State.CalculationSuccess == false)
@@ -110,6 +105,13 @@ Eigen::RowVector3d SPICE::SpiceCallIndiv(std::string date, Spice::ObjectID Objec
 	return PosVector;
 }
 
+/*
+*
+*	FUNCTION NAME:	printExampleSpiceData
+*
+*	SUMMARY: This function prints out example SPICE data and is only used to show how the SPICE library is called.
+*
+*/
 void SPICE::printExampleSpiceData() 
 {
 	// Create the Position Arrays of Moon and Sun
@@ -132,6 +134,14 @@ void SPICE::printExampleSpiceData()
 	}
 }
 
+
+/*
+*
+*	FUNCTION NAME:	printSpiceData
+*
+*	SUMMARY: Prints a singular position n-D vector with example SPICE data. Only used to show how SPICE library is called.
+*
+*/
 void SPICE::printSpiceData(std::vector<std::vector<double>> PosVector)
 {
 
@@ -141,4 +151,29 @@ void SPICE::printSpiceData(std::vector<std::vector<double>> PosVector)
 		printf("\n Main Position (km) = (%g, %g, %g)\n", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
 	}
 
+}
+
+/*
+*
+*	FUNCTION NAME:	EpochTimeCall
+*
+*	SUMMARY: Convert a timestamp to Epoch Time in seconds
+*
+*/
+float SPICE::EpochTimeCall(std::string date)
+{
+	Spice::KernelSet Kernels{};
+	Kernels.LoadAuxillary("naif0012.tls"); // Load naif0012.tls
+	Kernels.LoadEphemeris("de440.bsp");    // Load de430.bsp
+
+	// Display any thrown errors and exit
+	if (Kernels.HasFailed() == true)
+	{
+		for (const auto& Message : Kernels.GetErrorLog())
+		{
+			puts(Message.data());
+		}
+	}
+	float EpochTime = Spice::Date2Epoch(date);
+	return EpochTime;
 }

@@ -26,11 +26,17 @@
 // SPICE Class
 class SPICE 
 {       
-	public:            
+	public: 
+		// Necessary Functions for SPICE calling
 		std::vector<std::vector<double>>SpiceCall(std::vector<std::string> date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration);	// Function for querying into SPICE SPK file
-		Eigen::RowVector3d SpiceCallIndiv(std::string date, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration);							// Function for querying into SPICE SPK file with Eigen Vector Output
+		Eigen::RowVector3d SpiceCallIndiv(float epochTime, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration);							// Function for querying into SPICE SPK file with Eigen Vector Output
+		
+		// Examples of SPICE calls
 		void printExampleSpiceData();																																							// Example Function of SPICE data
 		void printSpiceData(std::vector<std::vector<double>> PosVector);																														// Function to print SPICE data
+		
+		// Tools for other use
+		float EpochTimeCall(std::string date);																																					// Get Epoch time in seconds
 };
 
 #endif

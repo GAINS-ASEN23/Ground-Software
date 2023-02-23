@@ -69,7 +69,7 @@ std::vector<std::vector<double>>SPICE::SpiceCall(std::vector<std::string> date, 
 *	SUMMARY: This function queries the SPICE data to create a position vector with the Eigen Matrix Library for each individual space object at the designated timestamps
 *
 */
-Eigen::RowVector3d SPICE::SpiceCallIndiv(float epochTime, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration)
+Eigen::RowVector3d SPICE::SpiceCallIndiv(double epochTime, Spice::ObjectID Object, Spice::FrameID Frame, Spice::ObjectID Reference, Spice::AbCorrectionID Aberration)
 {
 	// Create a class which keeps track of loaded kernels
 	// kernels will be unloaded once this instance goes out of scope
@@ -160,7 +160,7 @@ void SPICE::printSpiceData(std::vector<std::vector<double>> PosVector)
 *	SUMMARY: Convert a timestamp to Epoch Time in seconds
 *
 */
-float SPICE::EpochTimeCall(std::string date)
+double SPICE::EpochTimeCall(std::string date)
 {
 	Spice::KernelSet Kernels{};
 	Kernels.LoadAuxillary("naif0012.tls"); // Load naif0012.tls
@@ -174,6 +174,6 @@ float SPICE::EpochTimeCall(std::string date)
 			puts(Message.data());
 		}
 	}
-	float EpochTime = Spice::Date2Epoch(date);
+	double EpochTime = Spice::Date2Epoch(date);
 	return EpochTime;
 }

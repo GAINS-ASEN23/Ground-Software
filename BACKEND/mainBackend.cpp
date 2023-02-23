@@ -5,11 +5,42 @@
 */
 
 #include <iostream>
+#include <chrono>
 #include "..\Libraries\include\Eigen\Dense"
 
 #include "mainBackend.h"
 
 int main()
 {
+
+
+    // Recording the timestamp at the start of the code
+    auto beg = std::chrono::high_resolution_clock::now();
+
+    NBODYSIM nbodyObj;
+    
+    // Integration Stuff
+    double totTime = 60 * 60 * 3;
+    double dt = 5;
+
+    std::cout << "NBODYSIM Running..... \n";
+
+    std::vector<std::vector<double>> PosVector = nbodyObj.NBODYFUNC_SEMSC(totTime, dt, dateEx, V_scM, R_scM);
+
+    for (size_t j = PosVector.size(); j-- > 0; ) {
+        printf("\n Main Position (km) = (%g, %g, %g)\n", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
+    }
+
+    // Taking a timestamp after the code is ran
+    auto end = std::chrono::high_resolution_clock::now();
+
+    // Subtracting the end timestamp from the beginning
+    // And we choose to receive the difference in
+    // microseconds
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - beg);
+
+    // Displaying the elapsed time
+    std::cout << "Elapsed Time: " << duration.count();
+
     return 0;
 }

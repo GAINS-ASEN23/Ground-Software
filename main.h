@@ -121,3 +121,30 @@ const char* fs_Icon_Source = "#version 330 core\n"
 "   FragColor = vec4(chosenColor, 1.0);\n"
 "}\n\0";
 
+// 3D shaders for textured 3D objects
+const char* vs_3d_Source = "#version 330 core\n"
+"layout (location = 0) in vec3 aPos;\n"
+"layout (location = 1) in vec2 aTexCoord;\n"
+"uniform mat4 model;\n"
+"uniform mat4 view;\n"
+"uniform mat4 projection;\n"
+"uniform mat4 transform;\n"
+"uniform vec3 color;\n"
+"out vec3 chosenColor;\n"
+"out vec2 texCoord;\n"
+"void main()\n"
+"{\n"
+"   gl_Position = projection * view * model * transform * vec4(aPos, 1.0);\n"
+"   chosenColor = color;\n"
+"   texCoord = aTexCoord;\n"
+"}\0";
+
+const char* fs_3d_Source = "#version 330 core\n"
+"in vec3 chosenColor;\n"
+"in vec2 texCoord;\n"
+"out vec4 FragColor;\n"
+"uniform sampler2D texture1;\n"
+"void main()\n"
+"{\n"
+"   FragColor = texture(texture1,texCoord);" //vec4(chosenColor, 1.0);\n"
+"}\n\0";

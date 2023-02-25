@@ -38,7 +38,7 @@ bool down;
 
 // set the mode that the GUI and orbital simulation is in
 // 0 = orbital simulation, 1 = free movement, 2 = first testing mode
-int simMode = 0;
+int simMode = 1;
 
 // define utility functions
 unsigned int loadTexture(unsigned char* image_data, int width, int height, int nrChannels, unsigned int texture);
@@ -106,6 +106,9 @@ int main()
 
     // Generate line shader program from the shader class
     shader lineShaderProgram(vs_line_source, fs_line_source);
+
+    // Generate program for generic 3D objects from shader class - intended for use with box
+    shader boxShaderProgram(vs_3d_Source, fs_3d_Source);
 
     // --- Create the Shaders ---
     unsigned int VBO[4], VAO[4], EBO[2];
@@ -265,14 +268,86 @@ int main()
         -1.0f, -0.4f, 0.0f,
         -1.0f, -0.6f, 0.0f,
         -1.0f, -0.8f, 0.0f,
+    };
+
+    // setup circle vertices
+    float circleVert[] = {
+        1.0f, 0.0f, 0.0f, // 16
+        0.995f, 0.098f, 0.0f,
+        0.980f, 0.195f, 0.0f,
+        0.957f, 0.290f, 0.0f,
+        0.924f, 0.383f, 0.0f,
+        0.882f, 0.471f, 0.0f,
+        0.831f, 0.556f, 0.0f,
+        0.773f, 0.634f, 0.0f,
+        0.707f, 0.707f, 0.0f,
+        0.634f, 0.773f, 0.0f,
+        0.556f, 0.831f, 0.0f,
+        0.471f, 0.882f, 0.0f,
+        0.383f, 0.924f, 0.0f,
+        0.290f, 0.957f, 0.0f,
+        0.195f, 0.980f, 0.0f,
+        0.098f, 0.995f, 0.0f,
+
+        0.0f, 1.0f, 0.0f, // 16
+        -0.098f, 0.995f, 0.0f,
+        -0.195f, 0.980f, 0.0f,
+        -0.290f, 0.957f, 0.0f,
+        -0.383f, 0.924f, 0.0f,
+        -0.471f, 0.882f, 0.0f,
+        -0.556f, 0.831f, 0.0f,
+        -0.634f, 0.773f, 0.0f,
+        -0.707f, 0.707f, 0.0f,
+        -0.773f, 0.634f, 0.0f,
+        -0.831f, 0.556f, 0.0f,
+        -0.882f, 0.471f, 0.0f,
+        -0.924f, 0.383f, 0.0f,
+        -0.957f, 0.290f, 0.0f,
+        -0.980f, 0.195f, 0.0f,
+        -0.995f, 0.098f, 0.0f,
+
+        -1.0f, 0.0f, 0.0f, // 16
+        -0.995f, -0.098f, 0.0f,
+        -0.980f, -0.195f, 0.0f,
+        -0.957f, -0.290f, 0.0f,
+        -0.924f, -0.383f, 0.0f,
+        -0.882f, -0.471f, 0.0f,
+        -0.831f, -0.556f, 0.0f,
+        -0.773f, -0.634f, 0.0f,
+        -0.707f, -0.707f, 0.0f,
+        -0.634f, -0.773f, 0.0f,
+        -0.556f, -0.831f, 0.0f,
+        -0.471f, -0.882f, 0.0f,
+        -0.383f, -0.924f, 0.0f,
+        -0.290f, -0.957f, 0.0f,
+        -0.195f, -0.980f, 0.0f,
+        -0.098f, -0.995f, 0.0f,
+
+        0.0f, -1.0f, 0.0f, // 16
+        0.098f, -0.995f, 0.0f,
+        0.195f, -0.980f, 0.0f,
+        0.290f, -0.957f, 0.0f,
+        0.383f, -0.924f, 0.0f,
+        0.471f, -0.882f, 0.0f,
+        0.556f, -0.831f, 0.0f,
+        0.634f, -0.773f, 0.0f,
+        0.707f, -0.707f, 0.0f,
+        0.773f, -0.634f, 0.0f,
+        0.831f, -0.556f, 0.0f,
+        0.882f, -0.471f, 0.0f,
+        0.924f, -0.383f, 0.0f,
+        0.957f, -0.290f, 0.0f,
+        0.980f, -0.195f, 0.0f,
+        0.995f, -0.098f, 0.0f,
 
     };
 
     // Define the pointers to the transformation matrices
-    //glm::mat4 trans1;
-    //glm::mat4 trans2;
+    glm::mat4 trans1;
+    glm::mat4 trans_earth;
+    glm::mat4 trans_moon;
     //glm::mat4 init_trans2;
-    glm::mat4 trans3;
+    //glm::mat4 trans3;
     //glm::mat4 init_trans3;
 
     // Define variables for use in loop
@@ -280,16 +355,24 @@ int main()
     float translation[] = { -1.0f, 0.0f, 0.0f };
     float earth_rotation = 0.0f;
     float moon_rotation = 0.0f;
+    float ins_rotation = 180.0f;
     float moon_translation[] = { 1.0f, 0.0f, 0.0f };
     float trajectory_translation[] = { 0.8f, 0.0f, 0.0f };
     bool lock_motion = false;
     float viewScale = 1;
     float timeScale = 1;
-    float actualScale = 400000;
-    int lineCount = 10;
-    //float tempVert[30];
+    int lineCount = 16;
+    float tempVert[48];
     int step = 0;
     float lastTime = 0;
+    float actualScale = 1;
+
+    if (simMode == 0) {
+        actualScale = 400000;
+    }
+    else if (simMode == 1) {
+        actualScale = 1000;
+    }
 
     // Create the model,view, and projection transformation matrices
     glm::mat4 model = glm::mat4(1.0f);
@@ -376,7 +459,7 @@ int main()
     //std::vector<std::vector<double>>PosVectorEarth2; // May not be needed since in J2000 frame Earth is always at (0,0,0)
     PosVectorMoon2 = spiceFront.SpiceCall(date, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
     //PosVectorEarth2 = spiceFront.SpiceCall(date, Spice::ObjectID::EARTH, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
-    spiceFront.printSpiceData(PosVectorMoon2);
+    //spiceFront.printSpiceData(PosVectorMoon2);
     float spiceMoonTemp[30];
     float dataTimeSpace = 24.0f;
     //float spiceEarthTemp[30];
@@ -394,7 +477,7 @@ int main()
         //printf(" %f, %f, %f \n",spiceEarthTemp[i],spiceEarthTemp[i+1],spiceEarthTemp[i+2]);
     //}
     //std::cout << "\n OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO \n" << std::endl;
-    
+   
 
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -424,6 +507,9 @@ int main()
         // get the current glfw time value
         float timeValue = glfwGetTime();
 
+        //glm::vec4 moonCenterPosition_adjusted = glm::vec4(0.0f);
+        //glm::vec4 earthCenterPosition_adjusted = glm::vec4(0.0f);
+
         // draw objects for orbital simulation mode
         if (simMode == 0) {
 
@@ -449,11 +535,11 @@ int main()
                 glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
                 projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
                 glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-                trans3 = glm::mat4(1.0f);
-                trans3 = glm::translate(trans3, (1 / actualScale) * glm::vec3(0.0f, 0.0f, 0.0f));
-                trans3 = glm::rotate(trans3, glm::radians(earth_rotation), glm::vec3(0.0, 0.0, 1.0));
-                trans3 = glm::scale(trans3, earthScale * glm::vec3(1, 1, 1));
-                planetShaderProgram.setMat4("transform", trans3);
+                trans_earth = glm::mat4(1.0f);
+                trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(0.0f, 0.0f, 0.0f));
+                trans_earth = glm::rotate(trans_earth, glm::radians(earth_rotation), glm::vec3(0.0, 0.0, 1.0));
+                trans_earth = glm::scale(trans_earth, earthScale * glm::vec3(1, 1, 1));
+                planetShaderProgram.setMat4("transform", trans_earth);
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, textures[1]);
                 glBindVertexArray(VAO[1]);
@@ -461,6 +547,10 @@ int main()
             }
             else {
                 // --- Draw an icon for the Earth ---
+                // 
+                // Object tracking matrices
+                // gl_Position = projection * view * model * transform * vec4(aPos, 1.0)
+                // 
                 //printf("Earth is too small - should use an icon instead \n");
                 iconShaderProgram.use();
                 modelLoc = glGetUniformLocation(iconShaderProgram.ID, "model");
@@ -470,15 +560,17 @@ int main()
                 projectionLoc = glGetUniformLocation(iconShaderProgram.ID, "projection");
                 glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
                 iconShaderProgram.setVec3("color", glm::vec3(0.2, 0.2, 0.8));
-                trans3 = glm::mat4(1.0f);
-                trans3 = glm::translate(trans3, (1 / actualScale) * glm::vec3(0.0f, 0.0f, 0.0f));
+                trans_earth = glm::mat4(1.0f);
+                trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(0.0f, 0.0f, 0.0f));
                 //trans3 = glm::rotate(trans3, glm::radians(earth_rotation), glm::vec3(0.0, 0.0, 1.0));
-                trans3 = glm::scale(trans3, 0.025f * glm::vec3(1, 1, 1));
-                iconShaderProgram.setMat4("transform", trans3);
+                trans_earth = glm::scale(trans_earth, 0.025f * glm::vec3(1, 1, 1));
+                iconShaderProgram.setMat4("transform", trans_earth);
                 //glActiveTexture(GL_TEXTURE0);
                 //glBindTexture(GL_TEXTURE_2D, textures[1]);
                 glBindVertexArray(VAO[2]);
                 glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
+
+                //earthCenterPosition_adjusted = projection * view * model * trans_earth * glm::vec4(glm::vec3(0.0f,0.0f,0.0f), 1.0);
             }
 
 
@@ -519,10 +611,10 @@ int main()
             projectionLoc = glGetUniformLocation(lineShaderProgram.ID, "projection");
             glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
             lineShaderProgram.setVec3("color", glm::vec3(0.8, 0.0, 0.0));
-            trans3 = glm::mat4(1.0f);
+            trans_moon = glm::mat4(1.0f);
             //trans3 = glm::translate(trans3, (1 / actualScale) * glm::vec3(1.0, 0.0, 0.0));
-            trans3 = glm::scale(trans3, (1 / actualScale) * glm::vec3(1, 1, 1));
-            lineShaderProgram.setMat4("transform", trans3);
+            trans_moon = glm::scale(trans_moon, (1 / actualScale) * glm::vec3(1, 1, 1));
+            lineShaderProgram.setMat4("transform", trans_moon);
             glDrawArrays(GL_LINE_STRIP, 0, lineCount);
             //printf(" %f, %f, %f \n", (1 / actualScale)*spiceMoonTemp[0], (1 / actualScale)*spiceMoonTemp[1], (1 / actualScale)*spiceMoonTemp[2]);
             //printf("Outer size = %d \n", std::size(PosVectorMoon2));
@@ -539,11 +631,12 @@ int main()
                 glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
                 projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
                 glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-                trans3 = glm::mat4(1.0f);
-                trans3 = glm::translate(trans3, (1 / actualScale) * glm::vec3(spiceMoonTemp[27], spiceMoonTemp[28], spiceMoonTemp[29]));
-                trans3 = glm::rotate(trans3, glm::radians(moon_rotation), glm::vec3(0.0, 0.0, 1.0));
-                trans3 = glm::scale(trans3, moonScale * glm::vec3(1, 1, 1));
-                planetShaderProgram.setMat4("transform", trans3);
+                trans_moon = glm::mat4(1.0f);
+                //printf("Moon Position = %f, %f, %f \n", spiceMoonTemp[27], spiceMoonTemp[28], spiceMoonTemp[29]);
+                trans_moon = glm::translate(trans_moon, (1 / actualScale) * glm::vec3(spiceMoonTemp[27], spiceMoonTemp[28], spiceMoonTemp[29]));
+                trans_moon = glm::rotate(trans_moon, glm::radians(moon_rotation), glm::vec3(0.0, 0.0, 1.0));
+                trans_moon = glm::scale(trans_moon, moonScale * glm::vec3(1, 1, 1));
+                planetShaderProgram.setMat4("transform", trans_moon);
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, textures[2]);
                 glBindVertexArray(VAO[1]);
@@ -559,26 +652,85 @@ int main()
                 projectionLoc = glGetUniformLocation(iconShaderProgram.ID, "projection");
                 glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
                 iconShaderProgram.setVec3("color", glm::vec3(0.6, 0.6, 0.6));
-                trans3 = glm::mat4(1.0f);
-                trans3 = glm::translate(trans3, (1 / actualScale) * glm::vec3(spiceMoonTemp[27], spiceMoonTemp[28], spiceMoonTemp[29]));
+                trans_moon = glm::mat4(1.0f);
+                trans_moon = glm::translate(trans_moon, (1 / actualScale) * glm::vec3(spiceMoonTemp[27], spiceMoonTemp[28], spiceMoonTemp[29]));
                 //trans3 = glm::rotate(trans3, glm::radians(moon_rotation), glm::vec3(0.0, 0.0, 1.0));
-                trans3 = glm::scale(trans3, 0.015f * glm::vec3(1, 1, 1));
-                iconShaderProgram.setMat4("transform", trans3);
+                trans_moon = glm::scale(trans_moon, 0.015f * glm::vec3(1, 1, 1));
+                iconShaderProgram.setMat4("transform", trans_moon);
                 //glActiveTexture(GL_TEXTURE0);
                 //glBindTexture(GL_TEXTURE_2D, textures[2]);
                 glBindVertexArray(VAO[2]);
                 glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
 
+                //moonCenterPosition_adjusted = projection * view * model * trans_moon * glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0);
+
             }
         }
         else if (simMode == 1) {
-            float timeRemainder = timeValue - lastTime;
-            //printf("Time Remainder = %f \n", timeRemainder);
-            if (timeRemainder >= (1 / timeScale)) {
-                lastTime = timeValue;
-                step++;
+            if (lock_motion == false) {
+                float timeRemainder = timeValue - lastTime;
+                //printf("Time Remainder = %f \n", timeRemainder);
+                ins_rotation = fmod(ins_rotation + timeScale * 10 * (360.0f / 64.0f) * deltaTime, 360.0);
+                if (timeRemainder >= (0.1 / timeScale)) {
+                    lastTime = timeValue;
+                    step++;
+                }
             }
 
+            // Calculate the current points to show on the 2D line
+            //int currentStep = int(std::floor(timeValue * 10)) % (std::size(circleVert) / 3);
+            int currentStep = step % (std::size(circleVert) / 3);
+            int temp;
+            for (int i = 0; i < 3 * lineCount; i++) {
+                temp = i + currentStep * 3;
+                if (temp < (std::size(circleVert))) {
+                    tempVert[i] = circleVert[temp];
+                }
+                else {
+                    temp = temp - std::size(circleVert);
+                    tempVert[i] = circleVert[temp];
+                }
+            }
+
+            // --- Draw the 2D Line ---
+            glBindVertexArray(VAO[0]);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(tempVert), tempVert, GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); // position attribute
+            glEnableVertexAttribArray(0);
+            lineShaderProgram.use();
+            modelLoc = glGetUniformLocation(lineShaderProgram.ID, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            viewLoc = glGetUniformLocation(lineShaderProgram.ID, "view");
+            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            projectionLoc = glGetUniformLocation(lineShaderProgram.ID, "projection");
+            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+            lineShaderProgram.setVec3("color", glm::vec3(0.8, 0.1, 0.1));
+            trans1 = glm::mat4(1.0f);
+            //trans1 = glm::translate(trans1, 300 * (1 / actualScale) * glm::vec3(0.0, 0.0, 0.0));
+            trans1 = glm::scale(trans1, 250 *(1 / actualScale) * glm::vec3(1, 1, 1));
+            lineShaderProgram.setMat4("transform", trans1);
+            glDrawArrays(GL_LINE_STRIP, 0, lineCount);
+
+            boxShaderProgram.use();
+            modelLoc = glGetUniformLocation(boxShaderProgram.ID, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            viewLoc = glGetUniformLocation(boxShaderProgram.ID, "view");
+            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            projectionLoc = glGetUniformLocation(boxShaderProgram.ID, "projection");
+            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+            boxShaderProgram.setVec3("color", glm::vec3(0.1, 0.1, 0.8));
+            trans1 = glm::mat4(1.0f);
+            trans1 = glm::translate(trans1, 300 * (1 / actualScale) * glm::vec3(tempVert[0], tempVert[1], tempVert[2]));
+            trans1 = glm::rotate(trans1, glm::radians(ins_rotation), glm::vec3(0.0, 0.0, 1.0));
+            trans1 = glm::scale(trans1, 100 * (1 / actualScale) * glm::vec3(1, 1, 1));
+            boxShaderProgram.setMat4("transform", trans1);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, textures[0]);
+            glBindVertexArray(VAO[3]);
+            glDrawArrays(GL_TRIANGLES, 0, 36); 
+
+            /*
             // --- Draw Spice Data ---
             int currentStep2 = step % (std::size(PosVectorMoon2));
             int temp2;
@@ -609,11 +761,12 @@ int main()
             projectionLoc = glGetUniformLocation(lineShaderProgram.ID, "projection");
             glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
             lineShaderProgram.setVec3("color", glm::vec3(0.8, 0.0, 0.0));
-            trans3 = glm::mat4(1.0f);
-            trans3 = glm::translate(trans3, (1 / actualScale) * glm::vec3(1.0, 0.0, 0.0));
-            trans3 = glm::scale(trans3, (1 / actualScale) * glm::vec3(1, 1, 1));
-            lineShaderProgram.setMat4("transform", trans3);
+            trans1 = glm::mat4(1.0f);
+            trans1 = glm::translate(trans1, (1 / actualScale) * glm::vec3(1.0, 0.0, 0.0));
+            trans1 = glm::scale(trans1, (1 / actualScale) * glm::vec3(1, 1, 1));
+            lineShaderProgram.setMat4("transform", trans1);
             glDrawArrays(GL_LINE_STRIP, 0, lineCount);
+            */
         }
 
         /*
@@ -652,39 +805,123 @@ int main()
         lineShaderProgram.setMat4("transform", trans3);
         glDrawArrays(GL_LINE_STRIP, 0, lineCount);
         */
+        if (simMode == 0) {
+            // render the --- GUI --- (Design the GUI here)
+            ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
+            ImGui::SetNextWindowSize({ 400,160 }, ImGuiCond_Once); // ImGui Window width and window height
+            ImGui::Begin("GUI Window"); // creates the GUI and names it
+            ImGui::Button("Earth Centered ImGui Example Window");
+            //ImGui::Text("Planetary Distances Are Not To Scale"); // adds a text line to the GUI
+            ImGui::Checkbox("Lock Planet Movement", &lock_motion);
+            ImGui::SliderFloat("Actual Log Scale", &actualScale, 10e3, 10e9, "%1.0f", ImGuiSliderFlags_Logarithmic);
+            //ImGui::SliderFloat("Scale", &viewScale, 0.1, 10);
+            ImGui::SliderFloat("Frames Per Second", &timeScale, 0.1, 10);
+            ImGui::SliderFloat("Earth Rotation", &earth_rotation, 0, 360);
+            //ImGui::SliderFloat3("Moon Position", moon_translation, -1.0, 1.0);
+            ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);
+            ImGui::End();
 
-        // render the --- GUI --- (Design the GUI here)
-        ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
-        ImGui::SetNextWindowSize({ 400,160 }, ImGuiCond_Once); // ImGui Window width and window height
-        ImGui::Begin("GUI Window"); // creates the GUI and names it
-        ImGui::Button("Earth Centered ImGui Example Window");
-        ImGui::Text("Planetary Distances Are Not To Scale"); // adds a text line to the GUI
-        ImGui::Checkbox("Lock Planet Movement",&lock_motion);
-        ImGui::SliderFloat("Actual Log Scale", &actualScale, 10e3, 10e9, "%1.0f", ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat("Scale", &viewScale, 0.1, 10);
-        ImGui::SliderFloat("Frames Per Second", &timeScale, 0.1, 10);
-        ImGui::SliderFloat("Earth Rotation", &earth_rotation, 0, 360);
-        ImGui::SliderFloat3("Moon Position", moon_translation, -1.0, 1.0);
-        ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);
-        ImGui::End();
+            // New window overlay to do: fix scaling due to camera offset and zoom (will we need to do the reference distance another way? or even take it out?)
+            //    Will need to adjust openGL coords (-1 to 1) of objects into ImGui pixel coords when tracking objects with icons
+            int screen_width, screen_height;
+            glfwGetFramebufferSize(window, &screen_width, &screen_height);
+            ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
+            ImGui::SetNextWindowSize({ float(screen_width),float(screen_height) }, 0); // ImGui Window width and window height
+            ImGui::Begin("Drawlist Window", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground); // creates the GUI and names it
+            ImDrawList* myDrawList = ImGui::GetWindowDrawList();
+            //earthCenterPosition_adjusted
+            //printf("Earth Adjusted Position = %f \n", earthCenterPosition_adjusted[0]);
+            //printf("Moon Adjusted Position = %f, %f, %f \n", moonCenterPosition_adjusted[0], moonCenterPosition_adjusted[1], moonCenterPosition_adjusted[2]);
+            myDrawList->AddText(ImVec2(400, 300), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "Earth");
+            //myDrawList->AddText(ImVec2(200, 300), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "Moon");
+            //myDrawList->AddText(ImVec2((screen_width / 2)* (moonCenterPosition_adjusted[0]), 300), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "Moon_adj");
+            int ref_length = 1e6;
+            if ((actualScale < 1e4)) {
+                ref_length = (screen_width / 2) * (1e3 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 75) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e3 km");
+            }
+            else if ((actualScale < 1e5)) {
+                ref_length = (screen_width / 2) * (1e4 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e4 km");
+            }
+            else if ((actualScale < 1e6)) {
+                ref_length = (screen_width / 2) * (1e5 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e5 km");
+            }
+            else if ((actualScale < 1e7)) {
+                ref_length = (screen_width / 2) * (1e6 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e6 km");
+            }
+            else if ((actualScale < 1e8)) {
+                ref_length = (screen_width / 2) * (1e7 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e7 km");
+            }
+            else if ((actualScale < 1e9)) {
+                ref_length = (screen_width / 2) * (1e8 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e8 km");
+            }
+            else {
+                ref_length = (screen_width / 2) * (1e9 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e9 km");
+            }
+            ImVec2 a = ImVec2((screen_width - ref_length) - 50, screen_height - 50);
+            ImVec2 b = ImVec2(screen_width - 50, screen_height - 50);
+            myDrawList->AddLine(a, b, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Center Line
+            myDrawList->AddLine(ImVec2(a[0], a[1] - 10), ImVec2(a[0], a[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Left Verticle Line
+            myDrawList->AddLine(ImVec2(b[0], b[1] - 10), ImVec2(b[0], b[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Right Verticle Line
+            ImGui::End();
+        }
+        else if (simMode == 1) {
+            // render the GUI for the Free Roam Mode
+            ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
+            ImGui::SetNextWindowSize({ 400,160 }, ImGuiCond_Once); // ImGui Window width and window height
+            ImGui::Begin("GUI Window"); // creates the GUI and names it
+            ImGui::Button("Earth Centered ImGui Example Window");
+            ImGui::Text("Example Trajectory Only - Not The Intended Test Trajectory");
+            ImGui::Checkbox("Lock Movement", &lock_motion);
+            ImGui::SliderFloat("Scale (mm)", &actualScale, 1, 10e5, "%1.0f", ImGuiSliderFlags_Logarithmic);
+            //ImGui::SliderFloat("Scale", &viewScale, 0.1, 10);
+            ImGui::SliderFloat("Time Speed", &timeScale, 0.1, 10);
+            ImGui::End();
 
-        // Make new window to overlay information onto the screen such as text or a reference distance bar (like 1 km)
-        // will need to update to adjust window autmatically when openGL window size is changed. 
-        //    Will need to adjust openGL coords (-1 to 1) of objects into ImGui pixel coords when tracking objects with icons
-        ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
-        ImGui::SetNextWindowSize({ 800,600 }, ImGuiCond_Once); // ImGui Window width and window height
-        ImGui::Begin("Drawlist Window", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground); // creates the GUI and names it
-        ImDrawList* myDrawList = ImGui::GetWindowDrawList(); 
-        //myDrawList->AddLine(ImVec2(0,0),ImVec2(400,300),ImColor(1.0f,0.2f,0.2f,1.0f),1.0f); // test line
-        myDrawList->AddText(ImVec2(400,300), ImColor(1.0f, 1.0f, 1.0f, 1.0f),"Earth");
-        myDrawList->AddText(ImVec2(200, 300), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "Moon");
-        myDrawList->AddText(ImVec2(675, 520), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e6 km");
-        ImVec2 a = ImVec2(650,550);
-        ImVec2 b = ImVec2(750,550);
-        myDrawList->AddLine(a, b, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Center Line
-        myDrawList->AddLine(ImVec2(a[0], a[1] - 10), ImVec2(a[0], a[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Left Verticle Line
-        myDrawList->AddLine(ImVec2(b[0], b[1] - 10), ImVec2(b[0], b[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Right Verticle Line
-        ImGui::End();
+            int screen_width, screen_height;
+            glfwGetFramebufferSize(window, &screen_width, &screen_height);
+            ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
+            ImGui::SetNextWindowSize({ float(screen_width),float(screen_height) }, 0); // ImGui Window width and window height
+            ImGui::Begin("Drawlist Window", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground); // creates the GUI and names it
+            ImDrawList* myDrawList = ImGui::GetWindowDrawList();
+            int ref_length = 1000;
+            if ((actualScale < 1e1)) {
+                ref_length = (screen_width / 2) * (1e0 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 75) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1 mm");
+            }
+            else if ((actualScale < 1e2)) {
+                ref_length = (screen_width / 2) * (1e1 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1 cm");
+            }
+            else if ((actualScale < 1e3)) {
+                ref_length = (screen_width / 2) * (3 * 1e2 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "30 cm");
+            }
+            else if ((actualScale < 1e4)) {
+                ref_length = (screen_width / 2) * (1e3 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1 m");
+            }
+            else if ((actualScale < 1e5)) {
+                ref_length = (screen_width / 2) * (1e4 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "10 m");
+            }
+            else {
+                ref_length = (screen_width / 2) * (1e5 / actualScale);
+                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "100 m");
+            }
+            ImVec2 a = ImVec2((screen_width - ref_length) - 100, screen_height - 50);
+            ImVec2 b = ImVec2(screen_width - 100, screen_height - 50);
+            myDrawList->AddLine(a, b, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Center Line
+            myDrawList->AddLine(ImVec2(a[0], a[1] - 10), ImVec2(a[0], a[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Left Verticle Line
+            myDrawList->AddLine(ImVec2(b[0], b[1] - 10), ImVec2(b[0], b[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Right Verticle Line
+            ImGui::End();
+        }
 
         // Render dear imgui into screen
         ImGui::Render();

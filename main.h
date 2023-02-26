@@ -18,6 +18,7 @@
 #include <GLFW/glfw3.h>
 
 #include <shader.h>
+#include <shapeData.h>
 #include <Sphere.h>
 
 // for image loading and converting to texture functionality

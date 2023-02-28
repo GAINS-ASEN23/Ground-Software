@@ -14,7 +14,7 @@
 
 #include "mainBackend.h"
 
-// Comms testing
+// Comms setup
 #define IPADDRESS "127.0.0.1" // "192.168.1.64"
 #define UDP_PORT 13251
 
@@ -77,8 +77,8 @@ struct Client {
 
 int main()
 {
-    printf("Hello Backend");
     //begins comms testing
+    printf("Hello Backend");
 
     Client client;
     std::thread r([&] { client.Receiver(); });

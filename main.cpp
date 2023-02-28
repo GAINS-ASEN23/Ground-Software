@@ -300,13 +300,14 @@ int main()
     //PosVectorEarth2 = spiceFront.SpiceCall(date, Spice::ObjectID::EARTH, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
     //spiceFront.printSpiceData(PosVectorMoon);
     float spiceTemp[30];
+    float spiceTempData[30];
     float dataTimeSpace = 24.0f;
     //float spiceEarthTemp[30];
     for (int i = 0; i < 30; i = i + 3) {
         if (refFrame == 0) {
-            spiceTemp[i] = -PosVectorEarth.at(i).at(0);
-            spiceTemp[i + 1] = -PosVectorEarth.at(i).at(1);
-            spiceTemp[i + 2] = -PosVectorEarth.at(i).at(2);
+            spiceTemp[i] = PosVectorEarth.at(i).at(0);
+            spiceTemp[i + 1] = PosVectorEarth.at(i).at(1);
+            spiceTemp[i + 2] = PosVectorEarth.at(i).at(2);
         }
         else if (refFrame == 1) {
             spiceTemp[i] = PosVectorMoon.at(i).at(0);
@@ -322,6 +323,39 @@ int main()
         //printf(" %f, %f, %f \n",spiceTemp[i],spiceTemp[i+1],spiceTemp[i+2]);
         //printf(" %f, %f, %f \n",spiceEarthTemp[i],spiceEarthTemp[i+1],spiceEarthTemp[i+2]);
     //}
+
+
+    // --- Spice data testing from backend ---
+    // 
+    // Recording the timestamp at the start of the code
+    auto beg = std::chrono::high_resolution_clock::now();
+
+    NBODYSIM nbodyObj;
+
+    // Integration Stuff
+    double totTime = 60 * 60 * 3;
+    double dt = 5;
+
+    std::cout << "NBODYSIM Running..... \n";
+
+    std::vector<std::vector<double>> PosVector = nbodyObj.NBODYFUNC_SEMSC(totTime, dt, dateEx, V_scM, R_scM);
+
+    for (size_t j = PosVector.size(); j-- > 0; ) {
+        printf("\n Main Position (km) = (%g, %g, %g)\n", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
+    }
+
+    // Taking a timestamp after the code is ran
+    auto end = std::chrono::high_resolution_clock::now();
+
+    // Subtracting the end timestamp from the beginning
+    // And we choose to receive the difference in
+    // microseconds
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - beg);
+
+    // Displaying the elapsed time
+    std::cout << "Elapsed Time: " << duration.count();
+
+    // --- end spice data testing ---
    
 
     // Render loop
@@ -370,7 +404,7 @@ int main()
             }
 
             // Calculate a vector of positional vectors from the moon to the earth
-            int currentStep2 = step % (std::size(PosVectorMoon));
+            int currentStep2 = step % (std::size(PosVectorEarth));
             int temp2;
             for (int i = 0; i < lineCount; i++) {
                 temp2 = i + currentStep2;
@@ -386,6 +420,47 @@ int main()
                     spiceTemp[i * 3 + 2] = PosVectorEarth.at(temp2).at(2);
                 }
             }
+
+            // Calculate a vector of positional vectors to the Object - what is this object? No one knows O_O
+            int currentStep = step % (std::size(PosVector));
+            int temp;
+            for (int i = 0; i < lineCount; i++) {
+                temp = i + currentStep;
+                if (temp < (std::size(PosVector))) {
+                    spiceTempData[i * 3] = PosVector.at(temp).at(0);
+                    spiceTempData[i * 3 + 1] = PosVector.at(temp).at(1);
+                    spiceTempData[i * 3 + 2] = PosVector.at(temp).at(2);
+                }
+                else {
+                    temp2 = temp2 - std::size(PosVector);
+                    spiceTempData[i * 3] = PosVector.at(temp).at(0);
+                    spiceTempData[i * 3 + 1] = PosVector.at(temp).at(1);
+                    spiceTempData[i * 3 + 2] = PosVector.at(temp).at(2);
+                }
+            }
+            if (refFrame == 0) {
+                for (int i = 0; i < lineCount; i++) {
+                    spiceTempData[3 * i] = spiceTempData[3 * i] - spiceTemp[27];
+                    spiceTempData[3 * i + 1] = spiceTempData[3 * i + 1] - spiceTemp[28];
+                    spiceTempData[3 * i + 2] = spiceTempData[3 * i + 2] - spiceTemp[29];
+                }
+            }
+
+            // Draw the "object"
+            iconShaderProgram.use();
+            modelLoc = glGetUniformLocation(iconShaderProgram.ID, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            viewLoc = glGetUniformLocation(iconShaderProgram.ID, "view");
+            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            projectionLoc = glGetUniformLocation(iconShaderProgram.ID, "projection");
+            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+            iconShaderProgram.setVec3("color", glm::vec3(0.2, 1.0, 0.2));
+            trans_earth = glm::mat4(1.0f);
+            trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(spiceTempData[27], spiceTempData[28], spiceTempData[29]));
+            trans_earth = glm::scale(trans_earth, 0.025f * glm::vec3(1, 1, 1));
+            iconShaderProgram.setMat4("transform", trans_earth);
+            glBindVertexArray(VAO[2]);
+            glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
 
             float earthScale = viewScale * (1 / actualScale) * 6371;
             if (earthScale > 0.025) {

@@ -21,6 +21,8 @@
 #include <shapeData.h>
 #include <Sphere.h>
 
+#include <chrono>
+
 // for image loading and converting to texture functionality
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"

@@ -21,14 +21,14 @@ int main()
     
     // Integration Stuff
     double totTime = 60 * 60 * 3;
-    double dt = 5;
+    double dt = 10;
 
     std::cout << "NBODYSIM Running..... \n";
 
     std::vector<std::vector<double>> PosVector = nbodyObj.NBODYFUNC_SEMSC(totTime, dt, dateEx, V_scM, R_scM);
 
     for (size_t j = PosVector.size(); j-- > 0; ) {
-        printf("\n Main Position (km) = (%g, %g, %g)\n", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
+        printf("\n %g %g %g;", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
     }
 
     // Taking a timestamp after the code is ran

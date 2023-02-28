@@ -481,7 +481,7 @@ int main()
 
             float moonScale = viewScale * (1 / actualScale) * 1737.4f;
 
-            if (moonScale > 0.015) {
+            if (moonScale > 0.025) {
                 // --- Draw the Moon ---
                 planetShaderProgram.use();
                 modelLoc = glGetUniformLocation(planetShaderProgram.ID, "model");
@@ -525,7 +525,7 @@ int main()
                 }
                 //trans_moon = glm::translate(trans_moon, (1 / actualScale) * glm::vec3(-spiceTemp[27], -spiceTemp[28], -spiceTemp[29]));
                 //trans3 = glm::rotate(trans3, glm::radians(moon_rotation), glm::vec3(0.0, 0.0, 1.0));
-                trans_moon = glm::scale(trans_moon, 0.015f * glm::vec3(1, 1, 1));
+                trans_moon = glm::scale(trans_moon, 0.025f * glm::vec3(1, 1, 1));
                 iconShaderProgram.setMat4("transform", trans_moon);
                 //glActiveTexture(GL_TEXTURE0);
                 //glBindTexture(GL_TEXTURE_2D, textures[2]);

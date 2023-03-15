@@ -20,19 +20,20 @@ glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 // global variables for timing
-float deltaTime = 0.0f;	// Time between current frame and last frame
-float lastFrame = 0.0f; // Time of last frame
+float deltaTime = 0.0;	// Time between current frame and last frame
+float lastFrame = 0.0; // Time of last frame
 
 // global variables for mouse control
 bool firstMouse = true;
 float yaw = -90.0f;
 float pitch = 0.0f;
-float lastX = 800.0f / 2.0;
-float lastY = 600.0 / 2.0;
+double lastX = 800.0f / 2.0;
+double lastY = 600.0 / 2.0;
 float fov = 45.0f;
 
 // sense if the mouse is over the gui
 bool down;
+bool shouldSendMessage = false;
 
 // set the mode that the GUI and orbital simulation is in
 // 0 = orbital simulation, 1 = free movement, 2 = first testing mode
@@ -40,7 +41,7 @@ int simMode = 0;
 
 // set the reference frame that the orbital simulation is in
 // 0 = Earth Centered, 1 = Moon Centered
-int refFrame = 0;
+int refFrame = 1;
 
 // define utility functions
 unsigned int loadTexture(unsigned char* image_data, int width, int height, int nrChannels, unsigned int texture);
@@ -195,21 +196,20 @@ int main()
     float trajectory_translation[] = { 0.8f, 0.0f, 0.0f };
     bool lock_motion = false;
     float viewScale = 1;
-    float timeScale = 1;
-    int lineCount;
-    float tempVert[48];
+    float timeScale = 3600;
+    float actualScale = 1;
+    const int lineCount = 50;
+    if (simMode == 0) {
+        actualScale = 10000;
+        //lineCount = 50;
+    }
+    else{
+        actualScale = 1000;
+        //lineCount = 16;
+    }
+    float tempVert[3 * lineCount];
     int step = 0;
     float lastTime = 0;
-    float actualScale = 1;
-
-    if (simMode == 0) {
-        actualScale = 400000;
-        lineCount = 10;
-    }
-    else if (simMode == 1) {
-        actualScale = 1000;
-        lineCount = 16;
-    }
 
     // Create the model,view, and projection transformation matrices
     glm::mat4 model = glm::mat4(1.0f);
@@ -219,10 +219,6 @@ int main()
     int modelLoc;
     int viewLoc;
     int projectionLoc;
-
-    // camera directions
-    glm::vec3 direction;
-    yaw = -90.0f;
 
     std::vector<std::string> date = // temporarily here until we can fix linking issues when loading "data.h"
     {
@@ -294,35 +290,24 @@ int main()
     // initialize the spice object  
     std::vector<std::vector<double>>PosVectorMoon;
     std::vector<std::vector<double>>PosVectorEarth;
-    //std::vector<std::vector<double>>PosVectorEarth2; // May not be needed since in J2000 frame Earth is always at (0,0,0)
     PosVectorMoon = spiceFront.SpiceCall(date, Spice::ObjectID::MOON, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
     PosVectorEarth = spiceFront.SpiceCall(date, Spice::ObjectID::EARTH, Spice::FrameID::J2000, Spice::ObjectID::MOON, Spice::AbCorrectionID::NONE);
-    //PosVectorEarth2 = spiceFront.SpiceCall(date, Spice::ObjectID::EARTH, Spice::FrameID::J2000, Spice::ObjectID::EARTH, Spice::AbCorrectionID::NONE);
-    //spiceFront.printSpiceData(PosVectorMoon);
-    float spiceTemp[30];
-    float spiceTempData[30];
-    float dataTimeSpace = 24.0f;
-    //float spiceEarthTemp[30];
+    float spiceTemp[3 * lineCount];
+    float spiceTempData[3 * lineCount];
+    float dataTimeSpace = 24.0 * 3600.0;
     for (int i = 0; i < 30; i = i + 3) {
         if (refFrame == 0) {
-            spiceTemp[i] = PosVectorEarth.at(i).at(0);
-            spiceTemp[i + 1] = PosVectorEarth.at(i).at(1);
-            spiceTemp[i + 2] = PosVectorEarth.at(i).at(2);
+            spiceTemp[i] = float(PosVectorEarth.at(i).at(0));
+            spiceTemp[i + 1] = float(PosVectorEarth.at(i).at(1));
+            spiceTemp[i + 2] = float(PosVectorEarth.at(i).at(2));
         }
         else if (refFrame == 1) {
-            spiceTemp[i] = PosVectorMoon.at(i).at(0);
-            spiceTemp[i + 1] = PosVectorMoon.at(i).at(1);
-            spiceTemp[i + 2] = PosVectorMoon.at(i).at(2);
+            spiceTemp[i] = float(PosVectorMoon.at(i).at(0));
+            spiceTemp[i + 1] = float(PosVectorMoon.at(i).at(1));
+            spiceTemp[i + 2] = float(PosVectorMoon.at(i).at(2));
         }
 
-        //spiceEarthTemp[i] = PosVectorEarth2.at(i).at(0);
-        //spiceEarthTemp[i + 1] = PosVectorEarth2.at(i).at(1);
-        //spiceEarthTemp[i + 2] = PosVectorEarth2.at(i).at(2);
     }
-    //for (int i = 0; i < 30; i = i + 3) {
-        //printf(" %f, %f, %f \n",spiceTemp[i],spiceTemp[i+1],spiceTemp[i+2]);
-        //printf(" %f, %f, %f \n",spiceEarthTemp[i],spiceEarthTemp[i+1],spiceEarthTemp[i+2]);
-    //}
 
 
     // --- Spice data testing from backend ---
@@ -333,16 +318,16 @@ int main()
     NBODYSIM nbodyObj;
 
     // Integration Stuff
-    double totTime = 60 * 60 * 3;
-    double dt = 5;
+    double totTime = 500; //60 * 60 * 3;
+    double dt = 0.1; //5
 
     std::cout << "NBODYSIM Running..... \n";
 
-    std::vector<std::vector<double>> PosVector = nbodyObj.NBODYFUNC_SEMSC(totTime, dt, dateEx, V_scM, R_scM);
+    std::vector<std::vector<double>> PosVector = nbodyObj.NBODYFUNC_MSC(totTime, dt, dateEx, V_scM, R_scM);
 
-    for (size_t j = PosVector.size(); j-- > 0; ) {
+    /*for (size_t j = PosVector.size(); j-- > 0; ) {
         printf("\n Main Position (km) = (%g, %g, %g)\n", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
-    }
+    }*/
 
     // Taking a timestamp after the code is ran
     auto end = std::chrono::high_resolution_clock::now();
@@ -356,6 +341,8 @@ int main()
     std::cout << "Elapsed Time: " << duration.count();
 
     // --- end spice data testing ---
+    //float dt_for_nbody_data = 5;
+    printf("\n \n Data points in orbit: %d \n \n",int(std::size(PosVector)));
    
 
     // Render loop
@@ -381,70 +368,95 @@ int main()
         // adjust the users view
         view = glm::mat4(1.0f);
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f);
-
-        // get the current glfw time value
-        float timeValue = glfwGetTime();
+        projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f); // creates perspective projection - farther objects are smaller
+        //projection = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f); // creates orthographic projection - farther objects are same size
+        // ^ this should be more accurate for our uses, but we must find out what is breaking this and fix it before use
 
         //glm::vec4 moonCenterPosition_adjusted = glm::vec4(0.0f);
         //glm::vec4 earthCenterPosition_adjusted = glm::vec4(0.0f);
+
+        if (shouldSendMessage) {
+            //begins comms testing
+            printf("   ---   Hello Frontend   ---   ");
+
+            //Client client_front;
+            //std::thread r([&] { client_front.Receiver(); }); // operate the client on another thread so client and server can run at the same time
+
+
+            std::string input = "Test Message";
+            std::cout << "Input is '" << input.c_str() << "'\nSending it to Sender Function...\n";
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            Sender(input);
+            printf("Sent message at time: %f \n", currentFrame);
+
+            //printf("Client Joined \n");
+            //r.join(); // deletes the extra thread
+            // end comms testing
+            shouldSendMessage = false;
+        }
 
         // draw objects for orbital simulation mode
         if (simMode == 0) {
 
             // Calculate the current step of motion given the time and speed of animation
             if (lock_motion == false) {
-                float timeRemainder = timeValue - lastTime;
-                earth_rotation = fmod(earth_rotation + timeScale * dataTimeSpace * (360.0f / 24.0f) * deltaTime,360.0);
-                moon_rotation = fmod(moon_rotation + timeScale * dataTimeSpace * (360.0f / (24.0f * 27)) * deltaTime, 360.0);
-                if (timeRemainder >= (1 / timeScale)) {
-                    lastTime = timeValue;
-                    step++;
+                float timeRemainder = currentFrame - lastTime;
+                earth_rotation = fmod(earth_rotation + timeScale * (360.0f / (dataTimeSpace)) * deltaTime,360.0f);
+                moon_rotation = fmod(moon_rotation + timeScale * (360.0f / (27 * dataTimeSpace)) * deltaTime, 360.0f);
+                if (timeRemainder >= (dt / timeScale)) {
+                    lastTime = currentFrame;
+                    step = step + std::floor(timeRemainder * timeScale);
                 }
             }
 
             // Calculate a vector of positional vectors from the moon to the earth
             int currentStep2 = step % (std::size(PosVectorEarth));
-            int temp2;
+            size_t moon_temp_step;
             for (int i = 0; i < lineCount; i++) {
-                temp2 = i + currentStep2;
-                if (temp2 < (std::size(PosVectorEarth))) {
-                    spiceTemp[i * 3] = PosVectorEarth.at(temp2).at(0);
-                    spiceTemp[i * 3 + 1] = PosVectorEarth.at(temp2).at(1);
-                    spiceTemp[i * 3 + 2] = PosVectorEarth.at(temp2).at(2);
+                moon_temp_step = i + currentStep2;
+                if (moon_temp_step < (std::size(PosVectorEarth))) {
+                    spiceTemp[i * 3] = float(PosVectorEarth.at(moon_temp_step).at(0));
+                    spiceTemp[i * 3 + 1] = float(PosVectorEarth.at(moon_temp_step).at(1));
+                    spiceTemp[i * 3 + 2] = float(PosVectorEarth.at(moon_temp_step).at(2));
                 }
                 else {
-                    temp2 = temp2 - std::size(PosVectorEarth);
-                    spiceTemp[i * 3] = PosVectorEarth.at(temp2).at(0);
-                    spiceTemp[i * 3 + 1] = PosVectorEarth.at(temp2).at(1);
-                    spiceTemp[i * 3 + 2] = PosVectorEarth.at(temp2).at(2);
+                    while (moon_temp_step >= (std::size(PosVectorEarth))) {
+                        moon_temp_step = moon_temp_step - std::size(PosVectorEarth);
+                    }
+                    spiceTemp[i * 3] = float(PosVectorEarth.at(moon_temp_step).at(0));
+                    spiceTemp[i * 3 + 1] = float(PosVectorEarth.at(moon_temp_step).at(1));
+                    spiceTemp[i * 3 + 2] = float(PosVectorEarth.at(moon_temp_step).at(2));
                 }
             }
 
             // Calculate a vector of positional vectors to the Object - what is this object? No one knows O_O
             int currentStep = step % (std::size(PosVector));
-            int temp;
-            for (int i = 0; i < lineCount; i++) {
-                temp = i + currentStep;
-                if (temp < (std::size(PosVector))) {
-                    spiceTempData[i * 3] = PosVector.at(temp).at(0);
-                    spiceTempData[i * 3 + 1] = PosVector.at(temp).at(1);
-                    spiceTempData[i * 3 + 2] = PosVector.at(temp).at(2);
+            //printf("Current step in the data = %d\n", currentStep);
+            size_t obj_temp_step;
+            for (int i = 0; i < lineCount; i = i + 1) {
+                obj_temp_step = (i*(10) + currentStep);
+                if (obj_temp_step < (std::size(PosVector))) {
+                    spiceTempData[i * 3] =     float(PosVector.at(obj_temp_step).at(0));
+                    spiceTempData[i * 3 + 1] = float(PosVector.at(obj_temp_step).at(1));
+                    spiceTempData[i * 3 + 2] = float(PosVector.at(obj_temp_step).at(2));
                 }
                 else {
-                    temp2 = temp2 - std::size(PosVector);
-                    spiceTempData[i * 3] = PosVector.at(temp).at(0);
-                    spiceTempData[i * 3 + 1] = PosVector.at(temp).at(1);
-                    spiceTempData[i * 3 + 2] = PosVector.at(temp).at(2);
+                    while (obj_temp_step >= (std::size(PosVector))) {
+                        obj_temp_step = obj_temp_step - std::size(PosVector);
+                    }
+                    spiceTempData[i * 3] =     float(PosVector.at(obj_temp_step).at(0));
+                    spiceTempData[i * 3 + 1] = float(PosVector.at(obj_temp_step).at(1));
+                    spiceTempData[i * 3 + 2] = float(PosVector.at(obj_temp_step).at(2));
                 }
             }
-            if (refFrame == 0) {
+            /*if (refFrame == 0) {
                 for (int i = 0; i < lineCount; i++) {
                     spiceTempData[3 * i] = spiceTempData[3 * i] - spiceTemp[27];
                     spiceTempData[3 * i + 1] = spiceTempData[3 * i + 1] - spiceTemp[28];
                     spiceTempData[3 * i + 2] = spiceTempData[3 * i + 2] - spiceTemp[29];
                 }
-            }
+            }*/
 
             // Draw the "object"
             iconShaderProgram.use();
@@ -456,11 +468,38 @@ int main()
             glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
             iconShaderProgram.setVec3("color", glm::vec3(0.2, 1.0, 0.2));
             trans_earth = glm::mat4(1.0f);
-            trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(spiceTempData[27], spiceTempData[28], spiceTempData[29]));
+            trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(spiceTempData[0], spiceTempData[1], spiceTempData[2]));
             trans_earth = glm::scale(trans_earth, 0.025f * glm::vec3(1, 1, 1));
             iconShaderProgram.setMat4("transform", trans_earth);
             glBindVertexArray(VAO[2]);
             glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
+
+            //draw the object trajectory
+            glBindVertexArray(VAO[0]);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(spiceTempData), spiceTempData, GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); // position attribute
+            glEnableVertexAttribArray(0);
+            lineShaderProgram.use();
+            modelLoc = glGetUniformLocation(lineShaderProgram.ID, "model");
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            viewLoc = glGetUniformLocation(lineShaderProgram.ID, "view");
+            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            projectionLoc = glGetUniformLocation(lineShaderProgram.ID, "projection");
+            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+            lineShaderProgram.setVec3("color", glm::vec3(0.8, 0.0, 0.0));
+            trans_earth = glm::mat4(1.0f);
+            if (refFrame == 0) {
+                trans_earth = glm::scale(trans_earth, (1 / actualScale) * glm::vec3(1, 1, 1));
+            }
+            else {
+                trans_earth = glm::scale(trans_earth, (1 / actualScale) * glm::vec3(1, 1, 1));
+            }
+            lineShaderProgram.setMat4("transform", trans_earth);
+            glDrawArrays(GL_LINE_STRIP, 0, lineCount);
+
+
+
 
             float earthScale = viewScale * (1 / actualScale) * 6371;
             if (earthScale > 0.025) {
@@ -485,7 +524,7 @@ int main()
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, textures[1]);
                 glBindVertexArray(VAO[1]);
-                glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
+                //glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
             }
             else {
                 // --- Draw an icon for the Earth ---
@@ -513,7 +552,7 @@ int main()
                 //glActiveTexture(GL_TEXTURE0);
                 //glBindTexture(GL_TEXTURE_2D, textures[1]);
                 glBindVertexArray(VAO[2]);
-                glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
+                //glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
 
                 //earthCenterPosition_adjusted = projection * view * model * trans_earth * glm::vec4(glm::vec3(0.0f,0.0f,0.0f), 1.0);
             }
@@ -549,7 +588,7 @@ int main()
                 trans_moon = glm::scale(trans_moon, (1 / actualScale) * glm::vec3(1, 1, 1));
             }
             lineShaderProgram.setMat4("transform", trans_moon);
-            glDrawArrays(GL_LINE_STRIP, 0, lineCount);
+            //glDrawArrays(GL_LINE_STRIP, 0, lineCount);
             //printf(" %f, %f, %f \n", (1 / actualScale)*spiceTemp[0], (1 / actualScale)*spiceTemp[1], (1 / actualScale)*spiceTemp[2]);
             //printf("Outer size = %d \n", std::size(PosVectorMoon));
             //printf("Inner size = %d \n", PosVectorMoon.at(0).size());
@@ -613,27 +652,27 @@ int main()
         }
         else if (simMode == 1) {
             if (lock_motion == false) {
-                float timeRemainder = timeValue - lastTime;
+                float timeRemainder = currentFrame - lastTime;
                 //printf("Time Remainder = %f \n", timeRemainder);
                 ins_rotation = fmod(ins_rotation + timeScale * 10 * (360.0f / 64.0f) * deltaTime, 360.0);
                 if (timeRemainder >= (0.1 / timeScale)) {
-                    lastTime = timeValue;
-                    step++;
+                    lastTime = currentFrame;
+                    step = step + std::floor(timeRemainder * timeScale);
                 }
             }
 
             // Calculate the current points to show on the 2D line
-            //int currentStep = int(std::floor(timeValue * 10)) % (std::size(circleVert) / 3);
+            //int currentStep = int(std::floor(currentFrame * 10)) % (std::size(circleVert) / 3);
             int currentStep = step % (std::size(circleVert) / 3);
-            int temp;
+            int line_temp_step;
             for (int i = 0; i < 3 * lineCount; i++) {
-                temp = i + currentStep * 3;
-                if (temp < (std::size(circleVert))) {
-                    tempVert[i] = circleVert[temp];
+                line_temp_step = i + currentStep * 3;
+                if (line_temp_step < (std::size(circleVert))) {
+                    tempVert[i] = circleVert[line_temp_step];
                 }
                 else {
-                    temp = temp - std::size(circleVert);
-                    tempVert[i] = circleVert[temp];
+                    line_temp_step = line_temp_step - std::size(circleVert);
+                    tempVert[i] = circleVert[line_temp_step];
                 }
             }
 
@@ -722,9 +761,9 @@ int main()
             ImGui::Button("Earth Centered ImGui Example Window");
             //ImGui::Text("Planetary Distances Are Not To Scale"); // adds a text line to the GUI
             ImGui::Checkbox("Lock Planet Movement", &lock_motion);
-            ImGui::SliderFloat("Actual Log Scale", &actualScale, 10e3, 10e9, "%1.0f", ImGuiSliderFlags_Logarithmic);
+            ImGui::SliderFloat("Actual Log Scale", &actualScale, 10e2, 10e9, "%1.0f", ImGuiSliderFlags_Logarithmic);
             //ImGui::SliderFloat("Scale", &viewScale, 0.1, 10);
-            ImGui::SliderFloat("Frames Per Second", &timeScale, 0.1, 10);
+            ImGui::SliderFloat("Frames Per Second", &timeScale, 0.1, 10e4, "%1.0f", ImGuiSliderFlags_Logarithmic);
             ImGui::SliderFloat("Earth Rotation", &earth_rotation, 0, 360);
             //ImGui::SliderFloat3("Moon Position", moon_translation, -1.0, 1.0);
             ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);
@@ -737,6 +776,10 @@ int main()
             ImGui::SameLine();
             if (ImGui::Button(" Moon ")) {
                 refFrame = 1;
+            }
+
+            if (ImGui::Button(" Send Message ")) {
+                shouldSendMessage = true;
             }
 
             ImGui::End();
@@ -924,12 +967,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
                 firstMouse = false;
             }
 
-            float xoffset = xpos - lastX;
-            float yoffset = lastY - ypos;
+            double xoffset = xpos - lastX;
+            double yoffset = lastY - ypos;
             lastX = xpos;
             lastY = ypos;
 
-            float sensitivity = 0.1f;
+            double sensitivity = 0.1f;
             xoffset *= sensitivity;
             yoffset *= sensitivity;
 

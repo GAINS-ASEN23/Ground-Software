@@ -318,8 +318,8 @@ int main()
     NBODYSIM nbodyObj;
 
     // Integration Stuff
-    double totTime = 500; //60 * 60 * 3;
-    double dt = 0.1; //5
+    double totTime = 60 * 60 * 3;
+    double dt = 5;
 
     std::cout << "NBODYSIM Running..... \n";
 

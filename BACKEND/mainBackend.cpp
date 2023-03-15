@@ -50,7 +50,7 @@ int main()
 
     std::cout << "NBODYSIM Running..... \n";
 
-    std::vector<std::vector<double>> PosVector = nbodyObj.NBODYFUNC_SEMSC(totTime, dt, dateEx, V_scM, R_scM);
+    std::vector<std::vector<double>> PosVector = nbodyObj.NBODYFUNC_MSC(totTime, dt, dateEx, V_scM, R_scM);
 
     for (size_t j = PosVector.size(); j-- > 0; ) {
         printf("\n %g %g %g;", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));

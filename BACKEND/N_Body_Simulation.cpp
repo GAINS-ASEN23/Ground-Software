@@ -163,7 +163,7 @@ Eigen::RowVector3d NBODYSIM::get_Accel_MSC(double epochTime, Eigen::RowVector3d 
 	Eigen::RowVector3d R_SC_M = -1.0 * r_vec;
 
 	// Pre-Norms of the three individual components
-	Eigen::RowVector3d preNorm3 = R_SC_M - r_vec;
+	Eigen::RowVector3d preNorm3 = R_SC_M;
 
 	// Newton's Gravitation - Moon affect on Spacecraft (km/s^2)
 	Eigen::RowVector3d a_vec = G * ((preNorm3)*M_Mn / pow(preNorm3.norm(), 3));

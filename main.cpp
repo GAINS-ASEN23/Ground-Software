@@ -379,8 +379,8 @@ int main()
             //begins comms testing
             printf("   ---   Hello Frontend   ---   ");
 
-            //Client client_front;
-            //std::thread r([&] { client_front.Receiver(); }); // operate the client on another thread so client and server can run at the same time
+            Client client_front;
+            std::thread r([&] { client_front.Receiver(); }); // operate the client on another thread so client and server can run at the same time
 
 
             std::string input = "Test Message";
@@ -390,8 +390,8 @@ int main()
             Sender(input);
             printf("Sent message at time: %f \n", currentFrame);
 
-            //printf("Client Joined \n");
-            //r.join(); // deletes the extra thread
+            printf("Client Joined \n");
+            r.join(); // deletes the extra thread
             // end comms testing
             shouldSendMessage = false;
         }

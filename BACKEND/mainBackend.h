@@ -25,7 +25,7 @@ Eigen::RowVector3d V_scM{ -274.68/1000, 1.6323e3/1000, 0 };						// Initial Velo
 #define IPADDRESS "127.0.0.1" // "192.168.1.64" //ipaddress to send UDP message to
 #define UDP_PORT 13251 //UDP Port to send UDP message to
 
-#define IPADDRESS_Teensy "169.254.64.233" //"192.168.1.177" // Teensy self defined  IpAddress
+#define IPADDRESS_Teensy "169.254.59.40" //"192.168.1.177" // Teensy self defined  IpAddress
 #define UDP_PORT_Teensy 8888 // Teensy self defined port
 
 using boost::asio::ip::udp;
@@ -37,6 +37,7 @@ void Sender(std::string in) {
     boost::asio::io_service io_service;
     udp::socket socket(io_service);
     udp::endpoint remote_endpoint = udp::endpoint(address::from_string(IPADDRESS_Teensy), UDP_PORT_Teensy);
+    //udp::endpoint remote_endpoint = udp::endpoint(address::from_string(IPADDRESS), UDP_PORT); // sends message back to self - for testing purposes only
     socket.open(udp::v4()); //opens a socket using the IPv4 protocol
 
     boost::system::error_code err;
@@ -69,13 +70,19 @@ struct Client {
     }
 
     void wait() {
-        //socket.async_receive_from(boost::asio::buffer(recv_buffer),
-        //    remote_endpoint,
-        //    boost::bind(&Client::handle_receive, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-        
+        /*socket.async_receive_from(boost::asio::buffer(recv_buffer),
+            remote_endpoint,
+            boost::bind(&Client::handle_receive, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+        */
         boost::system::error_code error;
+        //socket.non_blocking(true);
+        printf("...Wait()... \n");
+        //size_t len = 0;
         size_t bytes_transferred = socket.receive_from(boost::asio::buffer(recv_buffer), remote_endpoint, 0, error);
+        printf("bytes received = %d \n", int(bytes_transferred));
+        //if (bytes_transferred > 0) {
         handle_receive(error, bytes_transferred);
+        //}
 
         //synchronous attempt
         //socket.receive(boost::asio::buffer(recv_buffer));
@@ -86,8 +93,15 @@ struct Client {
     void Receiver()
     {
         socket.open(udp::v4());
-        socket.bind(udp::endpoint(address::from_string(IPADDRESS), UDP_PORT));
-
+        boost::system::error_code error;
+        //socket.bind(udp::endpoint(address::from_string(IPADDRESS), UDP_PORT));
+        udp::endpoint remote_endpoint = udp::endpoint(address::from_string("0.0.0.0"), UDP_PORT_Teensy);
+        socket.bind(remote_endpoint,error);
+        //socket.connect(remote_endpoint, error);
+        if (error) {
+            std::cout << "Error binding to socket: " << error.message() << "\n";
+            return;
+        }
         wait();
 
         std::cout << "Receiving\n";

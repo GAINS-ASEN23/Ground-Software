@@ -34,6 +34,16 @@ float fov = 45.0f;
 // sense if the mouse is over the gui
 bool down;
 bool shouldSendMessage = false;
+bool waitToReceiveMessage = false;
+std::string teensy_ipaddress = "169.254.64.233";
+int teensy_ip_part1 = 169;
+int teensy_ip_part2 = 254;
+int teensy_ip_part3 = 64;
+int teensy_ip_part4 = 233;
+int teensy_port = 8888;
+
+//std::string receive_ipaddress = "169.254.102.36";
+//int receive_port = 8888;
 
 // set the mode that the GUI and orbital simulation is in
 // 0 = orbital simulation, 1 = free movement, 2 = first testing mode
@@ -219,6 +229,7 @@ int main()
     int modelLoc;
     int viewLoc;
     int projectionLoc;
+    size_t packetReceivelen = 0;
 
     std::vector<std::string> date = // temporarily here until we can fix linking issues when loading "data.h"
     {
@@ -343,8 +354,13 @@ int main()
     // --- end spice data testing ---
     //float dt_for_nbody_data = 5;
     printf("\n \n Data points in orbit: %d \n \n",int(std::size(PosVector)));
-   
 
+    // *** start thread for ethernet stuff here. When we start the thread, input a void pointer into the new thread as an argument into the function that the thread calls
+    // We can type cast this pointer to the space packet protocol type to pull it out. The function inside the thread - the data inside we want to get out should be stored
+    // on the heap so it doesnt get deleted. Once we get the data we need then we can deallocate the space packet protocol data. We need a semaphore inside and outside 
+    // so that the gui doesn't read the data while the data is being written in the alternate thread.
+    // Do join after the while loop for c++ garbage collection
+    // 
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -374,26 +390,34 @@ int main()
 
         //glm::vec4 moonCenterPosition_adjusted = glm::vec4(0.0f);
         //glm::vec4 earthCenterPosition_adjusted = glm::vec4(0.0f);
-
+        Client client_front;
         if (shouldSendMessage) {
+            //waitToReceiveMessage = true;
+            //boost::system::error_code error = boost::asio::error::would_block;
+            teensy_ipaddress = std::to_string(teensy_ip_part1) + "." + std::to_string(teensy_ip_part2) + "." + std::to_string(teensy_ip_part3) + "." + std::to_string(teensy_ip_part4);
             //begins comms testing
             printf("   ---   Hello Frontend   ---   ");
 
-            Client client_front;
-            std::thread r([&] { client_front.Receiver(); }); // operate the client on another thread so client and server can run at the same time
+            std::thread r([&] { client_front.Receiver(teensy_ipaddress, teensy_port); }); // operate the client on another thread so client and server can run at the same time
+            //std::thread r([&] {client_front.init_Receive(); }); // [&] lookup lambda functions. May look into semaphores for threads
 
 
             std::string input = "Test Message";
             std::cout << "Input is '" << input.c_str() << "'\nSending it to Sender Function...\n";
 
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
-            Sender(input);
+            Sender(input, teensy_ipaddress, teensy_port);
             printf("Sent message at time: %f \n", currentFrame);
 
-            printf("Client Joined \n");
+            printf("Client Began Joining \n");
             r.join(); // deletes the extra thread
+            printf("Client Finished Joining \n");
             // end comms testing
             shouldSendMessage = false;
+            //packetReceivelen = 0;
+        }
+        if (waitToReceiveMessage) {
+            //waitToReceiveMessage = client_front.check_Receive();
         }
 
         // draw objects for orbital simulation mode
@@ -756,16 +780,12 @@ int main()
         if (simMode == 0) {
             // render the --- GUI --- (Design the GUI here)
             ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
-            ImGui::SetNextWindowSize({ 410,195 }, ImGuiCond_Once); // ImGui Window width and window height
+            ImGui::SetNextWindowSize({ 570,240 }, ImGuiCond_Once); // ImGui Window width and window height
             ImGui::Begin("GUI Window"); // creates the GUI and names it
             ImGui::Button("Earth Centered ImGui Example Window");
-            //ImGui::Text("Planetary Distances Are Not To Scale"); // adds a text line to the GUI
             ImGui::Checkbox("Lock Planet Movement", &lock_motion);
             ImGui::SliderFloat("Actual Log Scale", &actualScale, 10e2, 10e9, "%1.0f", ImGuiSliderFlags_Logarithmic);
-            //ImGui::SliderFloat("Scale", &viewScale, 0.1, 10);
             ImGui::SliderFloat("Frames Per Second", &timeScale, 0.1, 10e4, "%1.0f", ImGuiSliderFlags_Logarithmic);
-            ImGui::SliderFloat("Earth Rotation", &earth_rotation, 0, 360);
-            //ImGui::SliderFloat3("Moon Position", moon_translation, -1.0, 1.0);
             ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);
 
             ImGui::Text("Choose Reference Frame Center: ");
@@ -781,6 +801,23 @@ int main()
             if (ImGui::Button(" Send Message ")) {
                 shouldSendMessage = true;
             }
+            //size_t inputtext_bufsize = 32;
+            //ImGui::InputText("Teensy IpAddress",&teensy_ipaddress);
+            ImGui::Text("Teensy IpAddress");
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::InputInt("", &teensy_ip_part1);
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::InputInt("", &teensy_ip_part2);
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::InputInt("", &teensy_ip_part3);
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::InputInt("", &teensy_ip_part4);
+
+            ImGui::InputInt("Teensy Port", &teensy_port);
 
             ImGui::End();
 

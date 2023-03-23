@@ -25,20 +25,25 @@ Eigen::RowVector3d V_scM{ -274.68/1000, 1.6323e3/1000, 0 };						// Initial Velo
 #define IPADDRESS "127.0.0.1" // "192.168.1.64" //ipaddress to send UDP message to
 #define UDP_PORT 13251 //UDP Port to send UDP message to
 
-#define IPADDRESS_Teensy "169.254.59.40" //"192.168.1.177" // Teensy self defined  IpAddress
+#define IPADDRESS_Teensy "169.254.64.233" //"192.168.1.177" // Teensy self defined  IpAddress
 #define UDP_PORT_Teensy 8888 // Teensy self defined port
+
+#define IPADDRESS_RECEIVE "169.254.102.36"
+#define UDP_PORT_RECEIVE 8888
 
 using boost::asio::ip::udp;
 using boost::asio::ip::address;
 
-void Sender(std::string in) {
+void Sender(std::string in, std::string send_ipaddress, int send_port) {
     // this function sends a udp message to a specific ipaddress and port
-
+    std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
     boost::asio::io_service io_service;
     udp::socket socket(io_service);
-    udp::endpoint remote_endpoint = udp::endpoint(address::from_string(IPADDRESS_Teensy), UDP_PORT_Teensy);
+    //udp::endpoint remote_endpoint = udp::endpoint(address::from_string(IPADDRESS_Teensy), UDP_PORT_Teensy);
+    udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
     //udp::endpoint remote_endpoint = udp::endpoint(address::from_string(IPADDRESS), UDP_PORT); // sends message back to self - for testing purposes only
     socket.open(udp::v4()); //opens a socket using the IPv4 protocol
+    //socket.open(remote_endpoint.protocol());
 
     boost::system::error_code err;
     auto sent = socket.send_to(boost::asio::buffer(in), remote_endpoint, 0, err); // "boost::asio::buffer" function takes a string as input and writes it to a boost buffer
@@ -50,9 +55,12 @@ void Sender(std::string in) {
 struct Client {
 
     boost::asio::io_service io_service;
-    udp::socket socket{ io_service };
+    udp::socket socket{ io_service};
     boost::array<char, 1024> recv_buffer;
     udp::endpoint remote_endpoint;
+    //udp::endpoint sender_endpoint;
+    boost::system::error_code receive_error;
+    size_t packetReceiveLen;
 
     int count = 1; // will wait for this many messages before allowing the main program to roll on
 
@@ -79,6 +87,11 @@ struct Client {
         printf("...Wait()... \n");
         //size_t len = 0;
         size_t bytes_transferred = socket.receive_from(boost::asio::buffer(recv_buffer), remote_endpoint, 0, error);
+        printf("Finished Receive_from\n");
+        if (error) {
+            std::cout << "Error in receive_from: " << error.message() << "\n";
+            return;
+        }
         printf("bytes received = %d \n", int(bytes_transferred));
         //if (bytes_transferred > 0) {
         handle_receive(error, bytes_transferred);
@@ -90,12 +103,17 @@ struct Client {
         // synchronous version of this function - will likely need more code changes than just this to implement
     }
 
-    void Receiver()
+    void Receiver(std::string receive_ipaddress, int receive_port)
     {
-        socket.open(udp::v4());
+        
+        std::cout << "Receiving on ipaddress: " << receive_ipaddress << ", with port: " << receive_port << "\n";
+        remote_endpoint = udp::endpoint(address::from_string(receive_ipaddress), receive_port);
+        //remote_endpoint = udp::endpoint(address::from_string(IPADDRESS_RECEIVE), 50000);
+        //socket.open(udp::v4());
+        socket.open(remote_endpoint.protocol());
         boost::system::error_code error;
         //socket.bind(udp::endpoint(address::from_string(IPADDRESS), UDP_PORT));
-        udp::endpoint remote_endpoint = udp::endpoint(address::from_string("0.0.0.0"), UDP_PORT_Teensy);
+        //udp::endpoint remote_endpoint = udp::endpoint(address::from_string(IPADDRESS_RECEIVE), 50000);
         socket.bind(remote_endpoint,error);
         //socket.connect(remote_endpoint, error);
         if (error) {
@@ -108,6 +126,41 @@ struct Client {
         io_service.run();
         std::cout << "Receiver exit\n";
     }
+/*
+    void init_Receive()
+    {
+        std::cout << "Start init_Receive()\n";
+        socket.open(udp::v4());
+        boost::system::error_code error;
+        packetReceiveLen = 0;
+        udp::endpoint remote_endpoint = udp::endpoint(address::from_string(IPADDRESS), UDP_PORT_Teensy);
+        std::cout << "Before socket.bind\n";
+        socket.non_blocking(true);
+        socket.bind(remote_endpoint, error);
+        if (error) {
+            std::cout << "Error binding to socket: " << error.message() << "\n";
+            return;
+        }
+        check_Receive();
+
+        std::cout << "Receiving\n";
+        io_service.run();
+        //std::cout << "Receiver exit\n";
+    }
+
+    bool check_Receive()
+    {
+        std::cout << "Start check_Receive()\n";
+        udp::endpoint remote_endpoint = udp::endpoint(address::from_string(IPADDRESS), UDP_PORT_Teensy);
+        packetReceiveLen = socket.receive_from(boost::asio::buffer(recv_buffer), remote_endpoint, 0, receive_error);
+        if (receive_error != boost::asio::error::would_block) {
+            std::cout << "Message Received. Length : " << packetReceiveLen << std::endl;
+            std::cout.write(recv_buffer.data(), packetReceiveLen);
+            return false;
+        }
+        std::cout << "Received Length = 0\n";
+        return true;
+    }*/
 };
 
 // end comms setup

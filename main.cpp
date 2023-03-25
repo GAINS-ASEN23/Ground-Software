@@ -35,15 +35,14 @@ float fov = 45.0f;
 bool down;
 bool shouldSendMessage = false;
 bool waitToReceiveMessage = false;
+
+// global variables for communications
 std::string teensy_ipaddress = "169.254.64.233";
 int teensy_ip_part1 = 169;
 int teensy_ip_part2 = 254;
 int teensy_ip_part3 = 64;
 int teensy_ip_part4 = 233;
 int teensy_port = 8888;
-
-//std::string receive_ipaddress = "169.254.102.36";
-//int receive_port = 8888;
 
 // set the mode that the GUI and orbital simulation is in
 // 0 = orbital simulation, 1 = free movement, 2 = first testing mode
@@ -173,7 +172,6 @@ int main()
         // --- Create the Earth texture ---
         stbi_set_flip_vertically_on_load(false);
         unsigned char* earth_image_data = stbi_load("earth2048.bmp", &width, &height, &nrChannels, 0);
-        //std::cout << "Earth File Details:" << std::endl << earth_width << std::endl << earth_height << std::endl << earth_nrChannels << std::endl; // for debugging only
         textures[1] = loadTexture(earth_image_data, width, height, nrChannels, textures[1]);
 
         // --- Create the Moon texture ---
@@ -211,11 +209,9 @@ int main()
     const int lineCount = 50;
     if (simMode == 0) {
         actualScale = 10000;
-        //lineCount = 50;
     }
     else{
         actualScale = 1000;
-        //lineCount = 16;
     }
     float tempVert[3 * lineCount];
     int step = 0;
@@ -230,7 +226,7 @@ int main()
     int viewLoc;
     int projectionLoc;
     size_t packetReceivelen = 0;
-
+    
     std::vector<std::string> date = // temporarily here until we can fix linking issues when loading "data.h"
     {
         "2022 October 01, 13:00:00 PST",
@@ -294,7 +290,7 @@ int main()
         "2022 November 28, 13:00:00 PST",
         "2022 November 29, 13:00:00 PST",
         "2022 November 30, 13:00:00 PST"
-    };
+    }; 
 
     SPICE spiceFront;
 
@@ -336,23 +332,16 @@ int main()
 
     std::vector<std::vector<double>> PosVector = nbodyObj.NBODYFUNC_MSC(totTime, dt, dateEx, V_scM, R_scM);
 
-    /*for (size_t j = PosVector.size(); j-- > 0; ) {
-        printf("\n Main Position (km) = (%g, %g, %g)\n", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
-    }*/
-
     // Taking a timestamp after the code is ran
     auto end = std::chrono::high_resolution_clock::now();
 
-    // Subtracting the end timestamp from the beginning
-    // And we choose to receive the difference in
-    // microseconds
+    // Subtracting the end timestamp from the beginning, And we choose to receive the difference in microseconds
     auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - beg);
 
     // Displaying the elapsed time
     std::cout << "Elapsed Time: " << duration.count();
 
     // --- end spice data testing ---
-    //float dt_for_nbody_data = 5;
     printf("\n \n Data points in orbit: %d \n \n",int(std::size(PosVector)));
 
     // *** start thread for ethernet stuff here. When we start the thread, input a void pointer into the new thread as an argument into the function that the thread calls
@@ -388,8 +377,6 @@ int main()
         //projection = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f); // creates orthographic projection - farther objects are same size
         // ^ this should be more accurate for our uses, but we must find out what is breaking this and fix it before use
 
-        //glm::vec4 moonCenterPosition_adjusted = glm::vec4(0.0f);
-        //glm::vec4 earthCenterPosition_adjusted = glm::vec4(0.0f);
         Client client_front;
         if (shouldSendMessage) {
             //waitToReceiveMessage = true;
@@ -400,7 +387,6 @@ int main()
 
             std::thread r([&] { client_front.Receiver(teensy_ipaddress, teensy_port); }); // operate the client on another thread so client and server can run at the same time
             //std::thread r([&] {client_front.init_Receive(); }); // [&] lookup lambda functions. May look into semaphores for threads
-
 
             std::string input = "Test Message";
             std::cout << "Input is '" << input.c_str() << "'\nSending it to Sender Function...\n";
@@ -456,7 +442,6 @@ int main()
 
             // Calculate a vector of positional vectors to the Object - what is this object? No one knows O_O
             int currentStep = step % (std::size(PosVector));
-            //printf("Current step in the data = %d\n", currentStep);
             size_t obj_temp_step;
             for (int i = 0; i < lineCount; i = i + 1) {
                 obj_temp_step = (i*(10) + currentStep);
@@ -474,13 +459,6 @@ int main()
                     spiceTempData[i * 3 + 2] = float(PosVector.at(obj_temp_step).at(2));
                 }
             }
-            /*if (refFrame == 0) {
-                for (int i = 0; i < lineCount; i++) {
-                    spiceTempData[3 * i] = spiceTempData[3 * i] - spiceTemp[27];
-                    spiceTempData[3 * i + 1] = spiceTempData[3 * i + 1] - spiceTemp[28];
-                    spiceTempData[3 * i + 2] = spiceTempData[3 * i + 2] - spiceTemp[29];
-                }
-            }*/
 
             // Draw the "object"
             iconShaderProgram.use();
@@ -552,10 +530,6 @@ int main()
             }
             else {
                 // --- Draw an icon for the Earth ---
-                // 
-                // Object tracking matrices
-                // gl_Position = projection * view * model * transform * vec4(aPos, 1.0)
-                // 
                 iconShaderProgram.use();
                 modelLoc = glGetUniformLocation(iconShaderProgram.ID, "model");
                 glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -570,15 +544,10 @@ int main()
                 } else {
                     trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(spiceTemp[27], spiceTemp[28], spiceTemp[29]));
                 }
-                //trans3 = glm::rotate(trans3, glm::radians(earth_rotation), glm::vec3(0.0, 0.0, 1.0));
                 trans_earth = glm::scale(trans_earth, 0.025f * glm::vec3(1, 1, 1));
                 iconShaderProgram.setMat4("transform", trans_earth);
-                //glActiveTexture(GL_TEXTURE0);
-                //glBindTexture(GL_TEXTURE_2D, textures[1]);
                 glBindVertexArray(VAO[2]);
                 //glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
-
-                //earthCenterPosition_adjusted = projection * view * model * trans_earth * glm::vec4(glm::vec3(0.0f,0.0f,0.0f), 1.0);
             }
 
 
@@ -613,9 +582,6 @@ int main()
             }
             lineShaderProgram.setMat4("transform", trans_moon);
             //glDrawArrays(GL_LINE_STRIP, 0, lineCount);
-            //printf(" %f, %f, %f \n", (1 / actualScale)*spiceTemp[0], (1 / actualScale)*spiceTemp[1], (1 / actualScale)*spiceTemp[2]);
-            //printf("Outer size = %d \n", std::size(PosVectorMoon));
-            //printf("Inner size = %d \n", PosVectorMoon.at(0).size());
 
             float moonScale = viewScale * (1 / actualScale) * 1737.4f;
 
@@ -629,14 +595,11 @@ int main()
                 projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
                 glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
                 trans_moon = glm::mat4(1.0f);
-                //printf("Moon Position = %f, %f, %f \n", spiceTemp[27], spiceTemp[28], spiceTemp[29]);
-                //trans_moon = glm::translate(trans_moon, (1 / actualScale) * glm::vec3(spiceTemp[27], spiceTemp[28], spiceTemp[29]));
                 if (refFrame == 0) {
                     trans_moon = glm::translate(trans_moon, (1 / actualScale) * glm::vec3(-spiceTemp[27], -spiceTemp[28], -spiceTemp[29]));
                 } else {
                     trans_moon = glm::translate(trans_moon, (1 / actualScale) * glm::vec3(0, 0, 0));
                 }
-                //trans_moon = glm::translate(trans_moon, (1 / actualScale) * glm::vec3(-spiceTemp[27], -spiceTemp[28], -spiceTemp[29]));
                 trans_moon = glm::rotate(trans_moon, glm::radians(moon_rotation), glm::vec3(0.0, 0.0, 1.0));
                 trans_moon = glm::scale(trans_moon, moonScale * glm::vec3(1, 1, 1));
                 planetShaderProgram.setMat4("transform", trans_moon);
@@ -661,23 +624,15 @@ int main()
                 } else {
                     trans_moon = glm::translate(trans_moon, (1 / actualScale) * glm::vec3(0, 0, 0));
                 }
-                //trans_moon = glm::translate(trans_moon, (1 / actualScale) * glm::vec3(-spiceTemp[27], -spiceTemp[28], -spiceTemp[29]));
-                //trans3 = glm::rotate(trans3, glm::radians(moon_rotation), glm::vec3(0.0, 0.0, 1.0));
                 trans_moon = glm::scale(trans_moon, 0.025f * glm::vec3(1, 1, 1));
                 iconShaderProgram.setMat4("transform", trans_moon);
-                //glActiveTexture(GL_TEXTURE0);
-                //glBindTexture(GL_TEXTURE_2D, textures[2]);
                 glBindVertexArray(VAO[2]);
                 glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
-
-                //moonCenterPosition_adjusted = projection * view * model * trans_moon * glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0);
-
             }
         }
         else if (simMode == 1) {
             if (lock_motion == false) {
                 float timeRemainder = currentFrame - lastTime;
-                //printf("Time Remainder = %f \n", timeRemainder);
                 ins_rotation = fmod(ins_rotation + timeScale * 10 * (360.0f / 64.0f) * deltaTime, 360.0);
                 if (timeRemainder >= (0.1 / timeScale)) {
                     lastTime = currentFrame;
@@ -686,7 +641,6 @@ int main()
             }
 
             // Calculate the current points to show on the 2D line
-            //int currentStep = int(std::floor(currentFrame * 10)) % (std::size(circleVert) / 3);
             int currentStep = step % (std::size(circleVert) / 3);
             int line_temp_step;
             for (int i = 0; i < 3 * lineCount; i++) {
@@ -715,7 +669,6 @@ int main()
             glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
             lineShaderProgram.setVec3("color", glm::vec3(0.8, 0.1, 0.1));
             trans1 = glm::mat4(1.0f);
-            //trans1 = glm::translate(trans1, 300 * (1 / actualScale) * glm::vec3(0.0, 0.0, 0.0));
             trans1 = glm::scale(trans1, 250 *(1 / actualScale) * glm::vec3(1, 1, 1));
             lineShaderProgram.setMat4("transform", trans1);
             glDrawArrays(GL_LINE_STRIP, 0, lineCount);
@@ -738,43 +691,6 @@ int main()
             glBindVertexArray(VAO[3]);
             glDrawArrays(GL_TRIANGLES, 0, 36); 
 
-            /*
-            // --- Draw Spice Data ---
-            int currentStep2 = step % (std::size(PosVectorMoon));
-            int temp2;
-            for (int i = 0; i < lineCount; i++) {
-                temp2 = i + currentStep2;
-                if (temp2 < (std::size(PosVectorMoon))) {
-                    spiceTemp[i * 3] = PosVectorMoon.at(temp2).at(0);
-                    spiceTemp[i * 3 + 1] = PosVectorMoon.at(temp2).at(1);
-                    spiceTemp[i * 3 + 2] = PosVectorMoon.at(temp2).at(2);
-                }
-                else {
-                    temp2 = temp2 - std::size(PosVectorMoon);
-                    spiceTemp[i * 3] = PosVectorMoon.at(temp2).at(0);
-                    spiceTemp[i * 3 + 1] = PosVectorMoon.at(temp2).at(1);
-                    spiceTemp[i * 3 + 2] = PosVectorMoon.at(temp2).at(2);
-                }
-            }
-            glBindVertexArray(VAO[0]);
-            glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(spiceTemp), spiceTemp, GL_STATIC_DRAW);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); // position attribute
-            glEnableVertexAttribArray(0);
-            lineShaderProgram.use();
-            modelLoc = glGetUniformLocation(lineShaderProgram.ID, "model");
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-            viewLoc = glGetUniformLocation(lineShaderProgram.ID, "view");
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-            projectionLoc = glGetUniformLocation(lineShaderProgram.ID, "projection");
-            glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-            lineShaderProgram.setVec3("color", glm::vec3(0.8, 0.0, 0.0));
-            trans1 = glm::mat4(1.0f);
-            trans1 = glm::translate(trans1, (1 / actualScale) * glm::vec3(1.0, 0.0, 0.0));
-            trans1 = glm::scale(trans1, (1 / actualScale) * glm::vec3(1, 1, 1));
-            lineShaderProgram.setMat4("transform", trans1);
-            glDrawArrays(GL_LINE_STRIP, 0, lineCount);
-            */
         }
 
         if (simMode == 0) {
@@ -801,21 +717,19 @@ int main()
             if (ImGui::Button(" Send Message ")) {
                 shouldSendMessage = true;
             }
-            //size_t inputtext_bufsize = 32;
-            //ImGui::InputText("Teensy IpAddress",&teensy_ipaddress);
             ImGui::Text("Teensy IpAddress");
-            ImGui::SameLine();
+            //ImGui::SameLine();
             ImGui::PushItemWidth(100);
-            ImGui::InputInt("", &teensy_ip_part1);
-            ImGui::SameLine();
+            ImGui::InputInt("Part 1", &teensy_ip_part1);
+            //ImGui::SameLine();
             ImGui::PushItemWidth(100);
-            ImGui::InputInt("", &teensy_ip_part2);
-            ImGui::SameLine();
+            ImGui::InputInt("Part 2", &teensy_ip_part2);
+            //ImGui::SameLine();
             ImGui::PushItemWidth(100);
-            ImGui::InputInt("", &teensy_ip_part3);
-            ImGui::SameLine();
+            ImGui::InputInt("Part 3", &teensy_ip_part3);
+            //ImGui::SameLine();
             ImGui::PushItemWidth(100);
-            ImGui::InputInt("", &teensy_ip_part4);
+            ImGui::InputInt("Part 4", &teensy_ip_part4);
 
             ImGui::InputInt("Teensy Port", &teensy_port);
 
@@ -829,12 +743,6 @@ int main()
             ImGui::SetNextWindowSize({ float(screen_width),float(screen_height) }, 0); // ImGui Window width and window height
             ImGui::Begin("Drawlist Window", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground); // creates the GUI and names it
             ImDrawList* myDrawList = ImGui::GetWindowDrawList();
-            //earthCenterPosition_adjusted
-            //printf("Earth Adjusted Position = %f \n", earthCenterPosition_adjusted[0]);
-            //printf("Moon Adjusted Position = %f, %f, %f \n", moonCenterPosition_adjusted[0], moonCenterPosition_adjusted[1], moonCenterPosition_adjusted[2]);
-            //myDrawList->AddText(ImVec2(400, 300), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "Earth");
-            //myDrawList->AddText(ImVec2(200, 300), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "Moon");
-            //myDrawList->AddText(ImVec2((screen_width / 2)* (moonCenterPosition_adjusted[0]), 300), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "Moon_adj");
             int ref_length = 1e6;
             if ((actualScale < 1e4)) {
                 ref_length = (screen_width / 2) * (1e3 / actualScale);
@@ -880,7 +788,6 @@ int main()
             ImGui::Text("Example Trajectory Only - Not The Intended Test Trajectory");
             ImGui::Checkbox("Lock Movement", &lock_motion);
             ImGui::SliderFloat("Scale (mm)", &actualScale, 1, 10e5, "%1.0f", ImGuiSliderFlags_Logarithmic);
-            //ImGui::SliderFloat("Scale", &viewScale, 0.1, 10);
             ImGui::SliderFloat("Time Speed", &timeScale, 0.1, 10);
             ImGui::End();
 

@@ -33,16 +33,6 @@ float fov = 45.0f;
 
 // sense if the mouse is over the gui
 bool down;
-bool shouldSendMessage = false;
-bool waitToReceiveMessage = false;
-
-// global variables for communications
-std::string teensy_ipaddress = "169.254.64.233";
-int teensy_ip_part1 = 169;
-int teensy_ip_part2 = 254;
-int teensy_ip_part3 = 64;
-int teensy_ip_part4 = 233;
-int teensy_port = 8888;
 
 // set the mode that the GUI and orbital simulation is in
 // 0 = orbital simulation, 1 = free movement, 2 = first testing mode
@@ -54,6 +44,8 @@ int refFrame = 1;
 
 // define utility functions
 unsigned int loadTexture(unsigned char* image_data, int width, int height, int nrChannels, unsigned int texture);
+int drawPlanet(shader shaderProgram, unsigned int VAO, unsigned int texture, float scale, float planetScale, float rotation, float positions[3], glm::mat4 model, glm::mat4 view, glm::mat4 proj, bool posFromObject, int sphereIndexCount);
+// needs for function: spiceTemp positions, actualScale, earth_rotation, texture, VAO
 
 int main()
 {
@@ -194,6 +186,20 @@ int main()
     glm::mat4 trans_earth;
     glm::mat4 trans_moon;
 
+    // initialize variables for communications
+    std::string teensy_ipaddress = "127.0.0.1";//"21.0.0.103";
+    int teensy_ip_part1 = 127;
+    int teensy_ip_part2 = 0;
+    int teensy_ip_part3 = 0;
+    int teensy_ip_part4 = 1;
+    int teensy_port = 8888;
+    std::string receive_ipaddress = "0.0.0.0";// "21.0.0.2";
+    int receive_ip_part1 = 0;
+    int receive_ip_part2 = 0;
+    int receive_ip_part3 = 0;
+    int receive_ip_part4 = 0;
+    int receive_port = 8888;
+
     // Define variables for use in loop
     float rotation = 0.0f;
     float translation[] = { -1.0f, 0.0f, 0.0f };
@@ -216,6 +222,16 @@ int main()
     float tempVert[3 * lineCount];
     int step = 0;
     float lastTime = 0;
+
+    // Initialize variables for communications and multithreading
+    bool shouldSendMessage = false;
+    bool ethernet_data_ready_flag = false;
+
+    // Initialize the local data struct in the stack because we just need it in the main function
+    GAINS_TLM_PACKET ethernet_packet;
+
+    // Initialize the thread safe class in the heap because we need to be able to access from anywhere (i.e. outside the main function's scope)
+    ethernet_data* eth_data = new ethernet_data();
 
     // Create the model,view, and projection transformation matrices
     glm::mat4 model = glm::mat4(1.0f);
@@ -349,7 +365,8 @@ int main()
     // on the heap so it doesnt get deleted. Once we get the data we need then we can deallocate the space packet protocol data. We need a semaphore inside and outside 
     // so that the gui doesn't read the data while the data is being written in the alternate thread.
     // Do join after the while loop for c++ garbage collection
-    // 
+    std::thread thread_two(ethernet_backend(), eth_data);
+
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -377,33 +394,48 @@ int main()
         //projection = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f); // creates orthographic projection - farther objects are same size
         // ^ this should be more accurate for our uses, but we must find out what is breaking this and fix it before use
 
-        Client client_front;
+        // --- Communication Receive ---
+        teensy_ipaddress = std::to_string(teensy_ip_part1) + "." + std::to_string(teensy_ip_part2) + "." + std::to_string(teensy_ip_part3) + "." + std::to_string(teensy_ip_part4);
+        receive_ipaddress = std::to_string(receive_ip_part1) + "." + std::to_string(receive_ip_part2) + "." + std::to_string(receive_ip_part3) + "." + std::to_string(receive_ip_part4);
+        //eth_data->set_ip(receive_ipaddress,receive_port);
+        // Check for the state of the flag to see whether we have new data available
+        eth_data->get_ready_flag(ethernet_data_ready_flag);
+        if (ethernet_data_ready_flag == true)
+        {
+            // Get the data
+            eth_data->get_data(ethernet_packet);
+
+            // Print the new data (to test)
+            std::cout << "Main loop time: " << currentFrame << " Flag: " << ethernet_data_ready_flag << " X: " << ethernet_packet.position_x << " Y: " << ethernet_packet.position_y << " Z: " << ethernet_packet.position_z << std::endl;
+
+            // Set the flag back to not ready because we have read the data and are waiting for new data
+            eth_data->set_ready_flag(false);
+        }
+
+        // --- Communication Send ---
+        //Client client_front;
         if (shouldSendMessage) {
             //waitToReceiveMessage = true;
             //boost::system::error_code error = boost::asio::error::would_block;
-            teensy_ipaddress = std::to_string(teensy_ip_part1) + "." + std::to_string(teensy_ip_part2) + "." + std::to_string(teensy_ip_part3) + "." + std::to_string(teensy_ip_part4);
             //begins comms testing
-            printf("   ---   Hello Frontend   ---   ");
+            //printf("   ---   Hello Frontend   ---   ");
 
-            std::thread r([&] { client_front.Receiver(teensy_ipaddress, teensy_port); }); // operate the client on another thread so client and server can run at the same time
+            //std::thread r([&] { client_front.Receiver(receive_ipaddress, receive_port); }); // operate the client on another thread so client and server can run at the same time
             //std::thread r([&] {client_front.init_Receive(); }); // [&] lookup lambda functions. May look into semaphores for threads
 
             std::string input = "Test Message";
             std::cout << "Input is '" << input.c_str() << "'\nSending it to Sender Function...\n";
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            //std::this_thread::sleep_for(std::chrono::milliseconds(200));
             Sender(input, teensy_ipaddress, teensy_port);
             printf("Sent message at time: %f \n", currentFrame);
 
-            printf("Client Began Joining \n");
-            r.join(); // deletes the extra thread
-            printf("Client Finished Joining \n");
+            //printf("Client Began Joining \n");
+            //r.join(); // deletes the extra thread
+            //printf("Client Finished Joining \n");
             // end comms testing
             shouldSendMessage = false;
             //packetReceivelen = 0;
-        }
-        if (waitToReceiveMessage) {
-            //waitToReceiveMessage = client_front.check_Receive();
         }
 
         // draw objects for orbital simulation mode
@@ -587,6 +619,7 @@ int main()
 
             if (moonScale > 0.025) {
                 // --- Draw the Moon ---
+                /*
                 planetShaderProgram.use();
                 modelLoc = glGetUniformLocation(planetShaderProgram.ID, "model");
                 glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -607,6 +640,15 @@ int main()
                 glBindTexture(GL_TEXTURE_2D, textures[2]);
                 glBindVertexArray(VAO[1]);
                 glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
+                */
+
+                float inputVec3[3] = { spiceTemp[27], spiceTemp[28], spiceTemp[29] };
+                //if (refFrame == 0) {
+                    drawPlanet(planetShaderProgram, VAO[1], textures[2], actualScale, moonScale, moon_rotation, inputVec3, model, view, projection, true, planet.getIndexCount());
+                //}
+                //else {
+                    //drawPlanet(planetShaderProgram, VAO[1], textures[2], actualScale, moonScale, moon_rotation, inputVec3, model, view, projection, true, planet.getIndexCount());
+                //}
             }
             else {
                 // --- Draw an icon for the Moon ---
@@ -718,20 +760,32 @@ int main()
                 shouldSendMessage = true;
             }
             ImGui::Text("Teensy IpAddress");
-            //ImGui::SameLine();
             ImGui::PushItemWidth(100);
-            ImGui::InputInt("Part 1", &teensy_ip_part1);
-            //ImGui::SameLine();
+            ImGui::InputInt("T 1", &teensy_ip_part1);
+            ImGui::SameLine();
             ImGui::PushItemWidth(100);
-            ImGui::InputInt("Part 2", &teensy_ip_part2);
-            //ImGui::SameLine();
+            ImGui::InputInt("T 2", &teensy_ip_part2);
+            ImGui::SameLine();
             ImGui::PushItemWidth(100);
-            ImGui::InputInt("Part 3", &teensy_ip_part3);
-            //ImGui::SameLine();
+            ImGui::InputInt("T 3", &teensy_ip_part3);
+            ImGui::SameLine();
             ImGui::PushItemWidth(100);
-            ImGui::InputInt("Part 4", &teensy_ip_part4);
-
+            ImGui::InputInt("T 4", &teensy_ip_part4);
             ImGui::InputInt("Teensy Port", &teensy_port);
+
+            ImGui::Text("Receiving IpAddress");
+            ImGui::PushItemWidth(100);
+            ImGui::InputInt("R 1", &receive_ip_part1);
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::InputInt("R 2", &receive_ip_part2);
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::InputInt("R 3", &receive_ip_part3);
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::InputInt("R 4", &receive_ip_part4);
+            ImGui::InputInt("Receiving Port", &receive_port);
 
             ImGui::End();
 
@@ -838,6 +892,10 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    printf("Client Began Joining \n");
+    thread_two.join(); // deletes the extra thread - Error: This doesn't exit properly when you hit the escape button
+    printf("Client Finished Joining \n");
 
     // stop rendering ImGui
     ImGui_ImplOpenGL3_Shutdown();
@@ -990,3 +1048,31 @@ unsigned int loadTexture(unsigned char* image_data, int width, int height, int n
     return texture;
 }
 
+int drawPlanet(shader shaderProgram, unsigned int VAO, unsigned int texture, float scale, float planetScale, float rotation, float positions[3], glm::mat4 model, glm::mat4 view, glm::mat4 proj, bool posFromObject, int sphereIndexCount) {
+    // This is a working function to draw the rotating moon or earth. Since this function requires soo many inputs, it may be better if we can make a class instead
+    
+    // --- Draw the Planet ---
+    shaderProgram.use();
+    int modelLoc = glGetUniformLocation(shaderProgram.ID, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    int viewLoc = glGetUniformLocation(shaderProgram.ID, "view");
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    int projLoc = glGetUniformLocation(shaderProgram.ID, "projection");
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
+    glm::mat4 trans_mat = glm::mat4(1.0f);
+    if (posFromObject) {
+        trans_mat = glm::translate(trans_mat, (1 / scale) * glm::vec3(-positions[0], -positions[1], -positions[2]));
+    }
+    else {
+        trans_mat = glm::translate(trans_mat, (1 / scale) * glm::vec3(positions[0], positions[1], positions[2]));
+    }
+    trans_mat = glm::rotate(trans_mat, glm::radians(rotation), glm::vec3(0.0, 0.0, 1.0));
+    trans_mat = glm::scale(trans_mat, planetScale * glm::vec3(1, 1, 1));
+    shaderProgram.setMat4("transform", trans_mat);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, sphereIndexCount, GL_UNSIGNED_INT, (void*)0);
+
+    //return 1; // a return value seems to prevent plotting - but why?
+}

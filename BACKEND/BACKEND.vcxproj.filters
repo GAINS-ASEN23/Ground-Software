@@ -38,5 +38,11 @@
     <ClInclude Include="N_Body_Simulation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ccsds.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="comms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -288,6 +288,8 @@
     <ClCompile Include="SPICEQuery.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ccsds.h" />
+    <ClInclude Include="comms.h" />
     <ClInclude Include="data.h" />
     <ClInclude Include="mainBackend.h" />
     <ClInclude Include="N_Body_Simulation.h" />

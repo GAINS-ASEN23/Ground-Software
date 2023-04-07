@@ -5,8 +5,8 @@
 * Purpose: This is the header file which defines the CCSDS Space Packet Struct Format
 */
 
-#ifndef _CCSDS_HPP_
-#define _CCSDS_HPP_
+#ifndef _CCSDS_H_
+#define _CCSDS_H_
 
 #include <iostream>       // std::cout
 
@@ -68,7 +68,7 @@ typedef struct {
 
 typedef struct {
 
-    uint8_t  Time[CCSDS_TIME_SIZE];
+    double  Time;
 
 } CCSDS_TlmSecHdr_t;
 
@@ -96,6 +96,41 @@ typedef struct
     CCSDS_SpacePacket_t  SpacePacket;   /**< \brief Standard Header on all packets */
     CCSDS_TlmSecHdr_t    Sec;
 } CCSDS_TelemetryPacket_t;
+
+struct GAINS_TLM_PACKET {
+    CCSDS_TelemetryPacket_t  FullHeader;
+    uint8_t     ci_command_error_count{ 0 }; //ignore for now
+    double      position_x{ 0 };
+    double      position_y{ 0 };
+    double      position_z{ 0 };
+    double      velocity_x{ 0 };
+    double      velocity_y{ 0 };
+    double      velocity_z{ 0 };
+};
+
+
+struct GAINS_STAR_PACKET {
+    CCSDS_TelemetryPacket_t     FullHeader;
+    uint8_t     ci_command_error_count{ 0 }; //ignore for now
+    double      betaAngle1{ 0 };
+    double      betaAngle2{ 0 };
+    double      betaAngle3{ 0 };
+    double      betaAngle4{ 0 };
+    double      filler1 = 0;
+    double      filler2 = 0;
+
+};
+
+struct headerData {
+    int appId = 0;
+    bool secondHeader = 0;
+    bool type = 0;
+    bool version = 0;
+    int seqCount = 0;
+    int segFlag = 0;
+    int length = 0;
+};
+
 
 #define CFE_SB_TLM_HDR_SIZE sizeof(CCSDS_TelemetryPacket_t)
 

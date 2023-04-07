@@ -57,6 +57,20 @@ void Send_Uint32(uint32_t in, std::string send_ipaddress, int send_port) {
     std::cout << "Sent Payload --- " << sent << "\n";
 }
 
+void Send_Packet(uint32_t in, std::string send_ipaddress, int send_port) {
+    // this function sends a udp message to a specific ipaddress and port
+    std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
+    boost::asio::io_service io_service;
+    udp::socket socket(io_service);
+    udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
+    socket.open(udp::v4()); //opens a socket using the IPv4 protocol
+
+    boost::system::error_code err;
+    auto sent = socket.send_to(boost::asio::buffer(&in, 4), remote_endpoint, 0, err); // "boost::asio::buffer" function takes a string as input and writes it to a boost buffer
+    socket.close();
+    std::cout << "Sent Payload --- " << sent << "\n";
+}
+
 struct Client {
 
     boost::asio::io_service io_service;

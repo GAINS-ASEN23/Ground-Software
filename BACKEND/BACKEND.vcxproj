@@ -283,6 +283,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ccsds.cpp" />
     <ClCompile Include="mainBackend.cpp" />
     <ClCompile Include="N_Body_Simulation.cpp" />
     <ClCompile Include="SPICEQuery.cpp" />

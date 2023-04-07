@@ -28,6 +28,8 @@
 
 using boost::asio::ip::udp;
 using boost::asio::ip::address;
+using boost::asio::buffer_cast;
+using boost::asio::const_buffer;
 
 void Send_String(std::string in, std::string send_ipaddress, int send_port) {
     // this function sends a udp message to a specific ipaddress and port
@@ -43,7 +45,7 @@ void Send_String(std::string in, std::string send_ipaddress, int send_port) {
     std::cout << "Sent Payload --- " << sent << "\n";
 }
 
-void Send_Uint32(uint32_t in, std::string send_ipaddress, int send_port) {
+void Send_Float(float in, std::string send_ipaddress, int send_port) {
     // this function sends a udp message to a specific ipaddress and port
     std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
     boost::asio::io_service io_service;
@@ -57,7 +59,7 @@ void Send_Uint32(uint32_t in, std::string send_ipaddress, int send_port) {
     std::cout << "Sent Payload --- " << sent << "\n";
 }
 
-void Send_Packet(uint32_t in, std::string send_ipaddress, int send_port) {
+void Send_Data_Packet(GAINS_TLM_PACKET tlm_packet, std::string send_ipaddress, int send_port) {
     // this function sends a udp message to a specific ipaddress and port
     std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
     boost::asio::io_service io_service;
@@ -66,7 +68,24 @@ void Send_Packet(uint32_t in, std::string send_ipaddress, int send_port) {
     socket.open(udp::v4()); //opens a socket using the IPv4 protocol
 
     boost::system::error_code err;
-    auto sent = socket.send_to(boost::asio::buffer(&in, 4), remote_endpoint, 0, err); // "boost::asio::buffer" function takes a string as input and writes it to a boost buffer
+    size_t packet_size = sizeof(tlm_packet);
+    std::cout << "Sending TLM Data Packet of size: " << packet_size << "\n";
+    auto sent = socket.send_to(boost::asio::buffer(&tlm_packet, packet_size), remote_endpoint, 0, err); // "boost::asio::buffer" function takes a string as input and writes it to a boost buffer
+    socket.close();
+    std::cout << "Sent Payload --- " << sent << "\n";
+}
+
+void Send_Star_Packet(GAINS_STAR_PACKET star_packet, std::string send_ipaddress, int send_port) {
+    // this function sends a udp message to a specific ipaddress and port
+    std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
+    boost::asio::io_service io_service;
+    udp::socket socket(io_service);
+    udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
+    socket.open(udp::v4()); //opens a socket using the IPv4 protocol
+
+    boost::system::error_code err;
+    size_t packet_size = sizeof(star_packet);
+    auto sent = socket.send_to(boost::asio::buffer(&star_packet, packet_size), remote_endpoint, 0, err); // "boost::asio::buffer" function takes a string as input and writes it to a boost buffer
     socket.close();
     std::cout << "Sent Payload --- " << sent << "\n";
 }
@@ -75,7 +94,8 @@ struct Client {
 
     boost::asio::io_service io_service;
     udp::socket socket{ io_service };
-    boost::array<char, 1024> recv_buffer;
+    //boost::array<char, 1024> recv_buffer;
+    boost::array<uint8_t, 256> recv_buffer;
     udp::endpoint remote_endpoint;
     boost::system::error_code receive_error;
     size_t packetReceiveLen;
@@ -131,9 +151,17 @@ struct Client {
             std::cout << "Receive failed: " << error.message() << "\n";
             return;
         }
-        // receive uint32_t
-        uint32_t receive_uint32 = uint32_t(((recv_buffer[0] << 24) | (recv_buffer[1] << 16) | (recv_buffer[2] << 8) | recv_buffer[3]));
-        std::cout << "Received: '" << receive_uint32 << "' (" << error.message() << ")\n";
+        // receive telemetry packet - this will call the receive_packet() function
+        //GAINS_TLM_PACKET tlm_packet;
+        //tlm_packet.FullHeader.SpacePacket.Hdr.StreamId[0] = recv_buffer;
+        //tlm_packet.FullHeader.SpacePacket.Hdr.StreamId[1] = ;
+        //std::cout << "Received: '" << receive_uint32 << "' (" << error.message() << ")\n";
+
+        // Receive Time Packets
+        float receive_float = 0;
+        uint32_t time_bits = ((recv_buffer[3] << 24) | (recv_buffer[2] << 16) | (recv_buffer[1] << 8) | recv_buffer[0]);
+        memcpy(&receive_float, &time_bits, sizeof(float)); 
+        std::cout << "Received: '" << receive_float << "' (" << error.message() << ")\n";
 
         // receive string
         //std::cout << "Received: '" << std::string(recv_buffer.begin(), recv_buffer.begin() + bytes_transferred) << "' (" << error.message() << ")\n";
@@ -172,16 +200,16 @@ struct Client {
 
 // Begin multi threading setup
 
-struct GAINS_TLM_PACKET {
-    uint8_t     TlmHeader[CFE_SB_TLM_HDR_SIZE]{ 0 }; //can give type telemetry packet
-    uint8_t     ci_command_error_count{ 0 };
-    double      position_x{ 0 };
-    double      position_y{ 0 };
-    double      position_z{ 0 };
-    double      velocity_x{ 0 };
-    double      velocity_y{ 0 };
-    double      velocity_z{ 0 };
-};
+//struct GAINS_TLM_PACKET {
+//    uint8_t     TlmHeader[CFE_SB_TLM_HDR_SIZE]{ 0 }; //can give type telemetry packet
+//    uint8_t     ci_command_error_count{ 0 };
+//    double      position_x{ 0 };
+//    double      position_y{ 0 };
+//    double      position_z{ 0 };
+//    double      velocity_x{ 0 };
+//    double      velocity_y{ 0 };
+//    double      velocity_z{ 0 };
+//};
 
 
 class ethernet_data {

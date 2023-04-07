@@ -10,6 +10,8 @@
 
 #include <iostream>       // std::cout
 
+#include "boost/array.hpp"
+
 /*
 ** Type Definitions
 */
@@ -68,9 +70,10 @@ typedef struct {
 
 typedef struct {
 
-    double  Time;
+    float  Time; //
+    uint8_t Mode; // 1 byte
 
-} CCSDS_TlmSecHdr_t;
+} CCSDS_TlmSecHdr_t; // total of 5 bytes
 
 typedef struct
 {
@@ -93,14 +96,15 @@ typedef struct
 
 typedef struct
 {
-    CCSDS_SpacePacket_t  SpacePacket;   /**< \brief Standard Header on all packets */
-    CCSDS_TlmSecHdr_t    Sec;
+    CCSDS_SpacePacket_t  SpacePacket; // 6 bytes   /**< \brief Standard Header on all packets */
+    CCSDS_TlmSecHdr_t    Sec; // 5 bytes
 } CCSDS_TelemetryPacket_t;
 
-struct GAINS_TLM_PACKET {
-    CCSDS_TelemetryPacket_t  FullHeader;
-    uint8_t     ci_command_error_count{ 0 }; //ignore for now
-    double      position_x{ 0 };
+// overall this seems to send as a 72 byte
+struct GAINS_TLM_PACKET { // how many bytes long is this? 
+    CCSDS_TelemetryPacket_t  FullHeader; // 11 bytes
+    uint8_t     ci_command_error_count{ 0 }; //ignore for now, 1 byte
+    double      position_x{ 0 }; // 8 bytes ...
     double      position_y{ 0 };
     double      position_z{ 0 };
     double      velocity_x{ 0 };
@@ -133,5 +137,13 @@ struct headerData {
 
 
 #define CFE_SB_TLM_HDR_SIZE sizeof(CCSDS_TelemetryPacket_t)
+
+CCSDS_PriHdr_t writeHeader(int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag);
+
+GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position_y, double position_z, double velocity_x, double velocity_y, double velocity_z, float time, int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag);
+
+GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAngle2, double betaAngle3, double betaAngle4, float time, int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag);
+
+headerData readPacket(boost::array<char, 1024> recv_buffer);
 
 #endif

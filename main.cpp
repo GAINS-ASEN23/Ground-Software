@@ -35,7 +35,7 @@ float fov = 45.0f;
 bool down;
 
 // set the mode that the GUI and orbital simulation is in
-// 0 = orbital simulation, 1 = free movement, 2 = first testing mode
+// 0 = orbital simulation, 1 = free movement, 2 = cnc testing mode
 int simMode = 0;
 
 // set the reference frame that the orbital simulation is in
@@ -192,13 +192,19 @@ int main()
     int teensy_ip_part2 = 0;
     int teensy_ip_part3 = 0;
     int teensy_ip_part4 = 1;
-    int teensy_port = 8888;
+    int teensy_port = 8889;
+    //std::string teensy_ipaddress = "21.0.0.103";//"21.0.0.103";
+    //int teensy_ip_part1 = 21;
+    //int teensy_ip_part2 = 0;
+    //int teensy_ip_part3 = 0;
+    //int teensy_ip_part4 = 103;
+    //int teensy_port = 8888;
     std::string receive_ipaddress = "0.0.0.0";// "21.0.0.2";
     int receive_ip_part1 = 0;
     int receive_ip_part2 = 0;
     int receive_ip_part3 = 0;
     int receive_ip_part4 = 0;
-    int receive_port = 8888;
+    int receive_port = 8889;
 
     // Define variables for use in loop
     float rotation = 0.0f;
@@ -225,6 +231,7 @@ int main()
 
     // Initialize variables for communications and multithreading
     bool shouldSendMessage = false;
+    bool shouldInitiateIPConnection = false;
     bool ethernet_data_ready_flag = false;
 
     // Initialize the local data struct in the stack because we just need it in the main function
@@ -319,19 +326,18 @@ int main()
     float spiceTempData[3 * lineCount];
     float dataTimeSpace = 24.0 * 3600.0;
     for (int i = 0; i < 30; i = i + 3) {
-        if (refFrame == 0) {
+        //if (refFrame == 0) {
             spiceTemp[i] = float(PosVectorEarth.at(i).at(0));
             spiceTemp[i + 1] = float(PosVectorEarth.at(i).at(1));
             spiceTemp[i + 2] = float(PosVectorEarth.at(i).at(2));
-        }
+        /*}
         else if (refFrame == 1) {
             spiceTemp[i] = float(PosVectorMoon.at(i).at(0));
             spiceTemp[i + 1] = float(PosVectorMoon.at(i).at(1));
             spiceTemp[i + 2] = float(PosVectorMoon.at(i).at(2));
-        }
+        }*/
 
     }
-
 
     // --- Spice data testing from backend ---
     // 
@@ -398,6 +404,14 @@ int main()
         teensy_ipaddress = std::to_string(teensy_ip_part1) + "." + std::to_string(teensy_ip_part2) + "." + std::to_string(teensy_ip_part3) + "." + std::to_string(teensy_ip_part4);
         receive_ipaddress = std::to_string(receive_ip_part1) + "." + std::to_string(receive_ip_part2) + "." + std::to_string(receive_ip_part3) + "." + std::to_string(receive_ip_part4);
         //eth_data->set_ip(receive_ipaddress,receive_port);
+
+        // Communications Update Ip Address and Port
+        if (shouldInitiateIPConnection) {
+            // add in code to update ipaddress and port of thread
+            eth_data->set_ip(receive_ipaddress, receive_port);
+            shouldInitiateIPConnection = false;
+        }
+
         // Check for the state of the flag to see whether we have new data available
         eth_data->get_ready_flag(ethernet_data_ready_flag);
         if (ethernet_data_ready_flag == true)
@@ -413,29 +427,18 @@ int main()
         }
 
         // --- Communication Send ---
-        //Client client_front;
         if (shouldSendMessage) {
-            //waitToReceiveMessage = true;
-            //boost::system::error_code error = boost::asio::error::would_block;
-            //begins comms testing
-            //printf("   ---   Hello Frontend   ---   ");
+            //std::string input_string = "Hello BeneetHello BeneetHello Beneet"; // just dont send a string of length 12
+            //std::cout << "Input string is '" << input_string.c_str() << "'\nSending it to Sender Function...\n";
+            //Send_String(input_string, teensy_ipaddress, teensy_port);
+            //printf("Sent message at time: %f \n", currentFrame);
 
-            //std::thread r([&] { client_front.Receiver(receive_ipaddress, receive_port); }); // operate the client on another thread so client and server can run at the same time
-            //std::thread r([&] {client_front.init_Receive(); }); // [&] lookup lambda functions. May look into semaphores for threads
-
-            std::string input = "Test Message";
-            std::cout << "Input is '" << input.c_str() << "'\nSending it to Sender Function...\n";
-
-            //std::this_thread::sleep_for(std::chrono::milliseconds(200));
-            Sender(input, teensy_ipaddress, teensy_port);
+            uint32_t input_uint32 = 182832;
+            std::cout << "Input uint32_t is '" << input_uint32 << "'\nSending it to Sender Function...\n";
+            Send_Uint32(input_uint32, teensy_ipaddress, teensy_port);
             printf("Sent message at time: %f \n", currentFrame);
 
-            //printf("Client Began Joining \n");
-            //r.join(); // deletes the extra thread
-            //printf("Client Finished Joining \n");
-            // end comms testing
             shouldSendMessage = false;
-            //packetReceivelen = 0;
         }
 
         // draw objects for orbital simulation mode
@@ -531,8 +534,6 @@ int main()
             }
             lineShaderProgram.setMat4("transform", trans_earth);
             glDrawArrays(GL_LINE_STRIP, 0, lineCount);
-
-
 
 
             float earthScale = viewScale * (1 / actualScale) * 6371;
@@ -672,7 +673,7 @@ int main()
                 glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
             }
         }
-        else if (simMode == 1) {
+        else if (simMode == 1 || simMode == 2) {
             if (lock_motion == false) {
                 float timeRemainder = currentFrame - lastTime;
                 ins_rotation = fmod(ins_rotation + timeScale * 10 * (360.0f / 64.0f) * deltaTime, 360.0);
@@ -759,6 +760,10 @@ int main()
             if (ImGui::Button(" Send Message ")) {
                 shouldSendMessage = true;
             }
+            if (ImGui::Button(" Initiate Receiver ")) {
+                shouldInitiateIPConnection = true;
+            }
+
             ImGui::Text("Teensy IpAddress");
             ImGui::PushItemWidth(100);
             ImGui::InputInt("T 1", &teensy_ip_part1);

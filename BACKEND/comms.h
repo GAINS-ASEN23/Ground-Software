@@ -26,33 +26,33 @@
 //#include <boost/bind.hpp>
 #include <boost/bind/bind.hpp>
 
-// Comms setup
-#define IPADDRESS "127.0.0.1" // "192.168.1.64" //ipaddress to send UDP message to
-#define UDP_PORT 13251 //UDP Port to send UDP message to
-
-#define IPADDRESS_Teensy "169.254.64.233" //"192.168.1.177" // Teensy self defined  IpAddress
-#define UDP_PORT_Teensy 8888 // Teensy self defined port
-
-#define IPADDRESS_RECEIVE "192.168.1.25"//"169.254.102.36"
-#define UDP_PORT_RECEIVE 8888
-
 using boost::asio::ip::udp;
 using boost::asio::ip::address;
 
-void Sender(std::string in, std::string send_ipaddress, int send_port) {
+void Send_String(std::string in, std::string send_ipaddress, int send_port) {
     // this function sends a udp message to a specific ipaddress and port
     std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
     boost::asio::io_service io_service;
     udp::socket socket(io_service);
-    //udp::endpoint remote_endpoint = udp::endpoint(address::from_string(IPADDRESS_Teensy), UDP_PORT_Teensy);
     udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
-    //udp::endpoint remote_endpoint = udp::endpoint(address::from_string(IPADDRESS), UDP_PORT); // sends message back to self - for testing purposes only
     socket.open(udp::v4()); //opens a socket using the IPv4 protocol
-    //socket.open(remote_endpoint.protocol());
 
     boost::system::error_code err;
     auto sent = socket.send_to(boost::asio::buffer(in), remote_endpoint, 0, err); // "boost::asio::buffer" function takes a string as input and writes it to a boost buffer
-    //"send_to" is used to send the buffer to the remote endpoint
+    socket.close();
+    std::cout << "Sent Payload --- " << sent << "\n";
+}
+
+void Send_Uint32(uint32_t in, std::string send_ipaddress, int send_port) {
+    // this function sends a udp message to a specific ipaddress and port
+    std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
+    boost::asio::io_service io_service;
+    udp::socket socket(io_service);
+    udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
+    socket.open(udp::v4()); //opens a socket using the IPv4 protocol
+
+    boost::system::error_code err;
+    auto sent = socket.send_to(boost::asio::buffer(&in,4), remote_endpoint, 0, err); // "boost::asio::buffer" function takes a string as input and writes it to a boost buffer
     socket.close();
     std::cout << "Sent Payload --- " << sent << "\n";
 }
@@ -65,27 +65,66 @@ struct Client {
     udp::endpoint remote_endpoint;
     boost::system::error_code receive_error;
     size_t packetReceiveLen;
+    //std::string prev_ipaddress = "0";
+    //int prev_port = 0;
 
     int count = 1; // will wait for this many messages before allowing the main program to roll on
 
-    void init(std::string receive_ipaddress, int receive_port) {
-        std::cout << "Receiving on ipaddress: " << receive_ipaddress << ", with port: " << receive_port << "\n";
-        Client::remote_endpoint = udp::endpoint(address::from_string(receive_ipaddress), receive_port);
-        socket.open(remote_endpoint.protocol());
-        boost::system::error_code error;
-        socket.bind(remote_endpoint, error);
-        if (error) {
-            std::cout << "Error binding to socket: " << error.message() << "\n";
+    bool init(std::string receive_ipaddress, int receive_port) {
+        /*if ((prev_ipaddress == receive_ipaddress) && (prev_port == receive_port)) {
             return;
         }
+        else {*/
+            //Client::close();
+        std::cout << "Receiving on ipaddress: " << receive_ipaddress << ", with port: " << receive_port << "\n";
+        Client::remote_endpoint = udp::endpoint(address::from_string(receive_ipaddress), receive_port);
+        //printf("Made it past creating remote endpoint \n");
+        socket.open(remote_endpoint.protocol());
+        //printf("Made it past open \n");
+        boost::system::error_code error;
+        socket.bind(remote_endpoint, error);
+        //printf("Made it past bind \n");
+        //socket.connect(remote_endpoint, error);
+        if (error) {
+            std::cout << "Error binding to socket: " << error.message() << "\n";
+            return false;
+        }
+        //printf("Returned True \n");
+        return true;
+
+            //prev_ipaddress = receive_ipaddress;
+            //prev_port = receive_port;
+        //}
     }
+
+    //void close()
+    //{
+    //    printf("Close function initiated \n");
+    //    io_service.post([this]() {
+    //        socket.close();
+    //        printf("socket.close done \n");
+    //        // As long as outstanding completion handlers do not
+    //        // invoke operations on socket_, then socket_ can be 
+    //        // destroyed.
+    //        //socket.release();
+    //        //printf("socket.release done \n");
+    //        });
+    //    printf("close function done \n");
+    //}
 
     void handle_receive(const boost::system::error_code& error, size_t bytes_transferred) {
         if (error) {
             std::cout << "Receive failed: " << error.message() << "\n";
             return;
         }
-        std::cout << "Received: '" << std::string(recv_buffer.begin(), recv_buffer.begin() + bytes_transferred) << "' (" << error.message() << ")\n";
+        // receive uint32_t
+        uint32_t receive_uint32 = uint32_t(((recv_buffer[0] << 24) | (recv_buffer[1] << 16) | (recv_buffer[2] << 8) | recv_buffer[3]));
+        std::cout << "Received: '" << receive_uint32 << "' (" << error.message() << ")\n";
+
+        // receive string
+        //std::cout << "Received: '" << std::string(recv_buffer.begin(), recv_buffer.begin() + bytes_transferred) << "' (" << error.message() << ")\n";
+
+        // receive struct (put this stuff below)
 
         if (--count > 0) {
             std::cout << "Count: " << count << "\n";
@@ -106,6 +145,7 @@ struct Client {
 
     void Receiver(std::string receive_ipaddress, int receive_port)
     {
+        // maybe can double check if previous ipaddress == new_ipaddress, if not then can bind to a new socket
 
         wait();
 
@@ -119,7 +159,7 @@ struct Client {
 // Begin multi threading setup
 
 struct GAINS_TLM_PACKET {
-    uint8_t     TlmHeader[CFE_SB_TLM_HDR_SIZE]{ 0 };
+    uint8_t     TlmHeader[CFE_SB_TLM_HDR_SIZE]{ 0 }; //can give type telemetry packet
     uint8_t     ci_command_error_count{ 0 };
     double      position_x{ 0 };
     double      position_y{ 0 };
@@ -173,7 +213,19 @@ public:
         data_mut.lock();
         ethernet_data::ipaddress = new_ipaddress;
         ethernet_data::port = new_port;
-        printf("Set_ip in ethernet class \n");
+        ethernet_data::establish_ip = true;
+        data_mut.unlock();
+    }
+
+    void get_connection_established(bool& connection_established) {
+        data_mut.lock();
+        connection_established = ethernet_data::establish_ip;
+        data_mut.unlock();
+    }
+
+    void set_connection_established(bool connection_established) {
+        data_mut.lock();
+        ethernet_data::establish_ip = connection_established;
         data_mut.unlock();
     }
 
@@ -183,7 +235,10 @@ private:
     bool data_ready{ false };
     GAINS_TLM_PACKET ethernet_data_buf;
     std::string ipaddress{ "0.0.0.0" };
-    int port{8888};
+    int port{8889};
+    bool establish_ip{ false };
+    //bool close_thread{false}; // is there a handler I can enable when thread.join() occurs that will properly end the receive and stop the thread
+
 };
 
 
@@ -200,45 +255,54 @@ public:
         Client client_thread;
         std::string ipaddress;
         int port;
+        bool connection_established = false;
+        int count = 0;
+        bool initiated = false;
 
         // Dummy vars
         int i = 0;
         int j = 0;
         int k = 0;
-        data_obj->get_ip(ipaddress, port);
-        client_thread.init(ipaddress, port);
 
         // Now loop infinitely in here unless some condition is met
         // Typically instead of true you would be looking for the CTRL-C keybind to safely exit...
         while (true)
         {
-            //printf("start wait for receive \n");
-            // We will likely have to give an input when we make a new thread to feed in the teensy_ipaddress and teensy_port
-            data_obj->get_ip(ipaddress, port);
-            client_thread.Receiver(ipaddress, port);
+            data_obj->get_connection_established(connection_established);
+            if (connection_established) {
+                data_obj->get_ip(ipaddress, port);
+                count++;
+                if (count == 1) {
+                    initiated = client_thread.init(ipaddress, port);
+                    std::cout << "Initiated = '" << initiated << "\n";
+                }
+                if (initiated) {
+                    client_thread.Receiver(ipaddress, port);
 
-            //printf("Received a message in ethernet class \n");
+                    // We got new data yay! (Dummy data)
+                    i++;
+                    j++;
+                    k++;
 
-            // We got new data yay! (Dummy data)
-            i++;
-            j++;
-            k++;
+                    // Set the local packet with the new data
+                    local_packet.position_x = i;
+                    local_packet.position_y = j;
+                    local_packet.position_z = k;
+                    local_packet.velocity_x = i * i;
+                    local_packet.velocity_y = j * j;
+                    local_packet.velocity_z = k * k;
 
-            // Set the local packet with the new data
-            local_packet.position_x = i;
-            local_packet.position_y = j;
-            local_packet.position_z = k;
-            local_packet.velocity_x = i * i;
-            local_packet.velocity_y = j * j;
-            local_packet.velocity_z = k * k;
+                    // Now set the data in our thread safe object class that is shared between threads by copying the local packet
+                    data_obj->set_data(local_packet);
 
-            // Now set the data in our thread safe object class that is shared between threads by copying the local packet
-            data_obj->set_data(local_packet);
-
-            // Set the flag that the new data is ready
-            data_obj->set_ready_flag(true);
-
-            //printf("Finished 1 iteration \n");
+                    // Set the flag that the new data is ready
+                    data_obj->set_ready_flag(true);
+                }
+                else {
+                    data_obj->set_connection_established(false);
+                    //count = 0;
+                }
+            }
         }
     }
 };

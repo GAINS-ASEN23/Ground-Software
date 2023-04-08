@@ -70,18 +70,100 @@ GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAn
 }
 
 
-//GAINS_TLM_PACKET readPacket(boost::array<char, 1024> recv_buffer) { // we need to program this to decode a buffer (an array of uint8_t) and put it into the SPP format
-//    // incoming buffer will be 72 bytes long (72 uint8_t)
-//    GAINS_TLM_PACKET data;
-//    //recv_buffer[0]
-//    //data.appId = 0x07FF & input.StreamId;
-//    //data.secondHeader = (0x0800 & input.StreamId) >> 11;
-//    //data.type = (0x1000 & input.StreamId) >> 12;
-//    //data.version = (0xE000 & input.StreamId) >> 13;
-//    //
-//    //data.seqCount = 0x3FFF & input.Sequence;
-//    //data.segFlag = (0xC000 & input.Sequence) >> 14;
-//    //
-//    //data.length = input.Length;
-//
-//}
+GAINS_TLM_PACKET readPacket(boost::array<char, 1024> recv_buffer) { // we need to program this to decode a buffer (an array of uint8_t) and put it into the SPP format
+   // incoming buffer will be 72 bytes long (72 uint8_t)
+    GAINS_TLM_PACKET data;
+
+    int offset = 0;
+    
+    data.velocity_z = recv_buffer[7 + offset] << 56 | // Read in the Z velocity
+        recv_buffer[6 + offset] << 48 | 
+        recv_buffer[5 + offset] << 40 | 
+        recv_buffer[4 + offset] << 32 | 
+        recv_buffer[3 + offset] << 24 |
+        recv_buffer[2 + offset] << 16 |
+        recv_buffer[1 + offset] << 8 |
+        recv_buffer[0 + offset];
+    
+    offset = offset + 8;
+
+    data.velocity_y = recv_buffer[7 + offset] << 56 | // Read in the Y velocity
+        recv_buffer[6 + offset] << 48 | 
+        recv_buffer[5 + offset] << 40 | 
+        recv_buffer[4 + offset] << 32 | 
+        recv_buffer[3 + offset] << 24 |
+        recv_buffer[2 + offset] << 16 |
+        recv_buffer[1 + offset] << 8 |
+        recv_buffer[0 + offset];
+
+    offset = offset + 8;
+    
+    data.velocity_x = recv_buffer[7 + offset] << 56 | // Read in the X velocity
+        recv_buffer[6 + offset] << 48 | 
+        recv_buffer[5 + offset] << 40 | 
+        recv_buffer[4 + offset] << 32 | 
+        recv_buffer[3 + offset] << 24 |
+        recv_buffer[2 + offset] << 16 |
+        recv_buffer[1 + offset] << 8 |
+        recv_buffer[0 + offset];
+    
+    offset = offset + 8;
+
+    data.position_z = recv_buffer[7 + offset] << 56 | // Read in the Z position
+        recv_buffer[6 + offset] << 48 | 
+        recv_buffer[5 + offset] << 40 | 
+        recv_buffer[4 + offset] << 32 | 
+        recv_buffer[3 + offset] << 24 |
+        recv_buffer[2 + offset] << 16 |
+        recv_buffer[1 + offset] << 8 |
+        recv_buffer[0 + offset];
+    
+    offset = offset + 8;
+
+        data.position_y = recv_buffer[7 + offset] << 56 | // Read in the Y position
+        recv_buffer[6 + offset] << 48 | 
+        recv_buffer[5 + offset] << 40 | 
+        recv_buffer[4 + offset] << 32 | 
+        recv_buffer[3 + offset] << 24 |
+        recv_buffer[2 + offset] << 16 |
+        recv_buffer[1 + offset] << 8 |
+        recv_buffer[0 + offset];
+    
+    offset = offset + 8;
+        data.position_x = recv_buffer[7 + offset] << 56 | // Read in the X position
+        recv_buffer[6 + offset] << 48 | 
+        recv_buffer[5 + offset] << 40 | 
+        recv_buffer[4 + offset] << 32 | 
+        recv_buffer[3 + offset] << 24 |
+        recv_buffer[2 + offset] << 16 |
+        recv_buffer[1 + offset] << 8 |
+        recv_buffer[0 + offset];
+    
+    offset = offset + 8;
+
+    data.ci_command_error_count = recv_buffer[offset]; // Read in the Z position
+    offset = offset + 1;
+
+    data.FullHeader.Sec.Mode = recv_buffer[offset];
+    offset = offset + 1;
+
+    data.FullHeader.Sec.Time = recv_buffer[3 + offset] << 24 |
+        recv_buffer[2 + offset] << 16 |
+        recv_buffer[1 + offset] << 8 |
+        recv_buffer[0 + offset];
+    offset = offset + 4;
+
+    data.FullHeader.SpacePacket.Hdr.Length[1] = recv_buffer[offset];
+    data.FullHeader.SpacePacket.Hdr.Length[0] = recv_buffer[offset + 1];
+    offset = offset + 2;
+
+    data.FullHeader.SpacePacket.Hdr.Sequence[1] = recv_buffer[offset];
+    data.FullHeader.SpacePacket.Hdr.Sequence[0] = recv_buffer[offset + 1];
+    offset = offset + 2;
+
+    data.FullHeader.SpacePacket.Hdr.StreamId[1] = recv_buffer[offset];
+    data.FullHeader.SpacePacket.Hdr.StreamId[0] = recv_buffer[offset + 1];
+    offset = offset + 2;
+
+    return data;
+}

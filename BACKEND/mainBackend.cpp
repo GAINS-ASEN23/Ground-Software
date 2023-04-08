@@ -19,26 +19,6 @@
 int main()
 {
 
-    ////begins comms testing
-    //printf("Hello Backend");
-
-    //Client client;
-    //std::thread r([&] { client.Receiver(); }); // operate the client on another thread so client and server can run at the same time
-
-    ////std::string input = argc > 1 ? argv[1] : "hello world";
-    //std::string input = "hello world";
-    //std::cout << "Input is '" << input.c_str() << "'\nSending it to Sender Function...\n";
-
-    //for (int i = 0; i < 3; ++i) {
-    //    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    //    Sender(input);
-    //    printf("Send message %d \n", i);
-    //}
-    //printf("Client Joined \n");
-    //r.join();
-    //// end comms testing
-
-
     // Recording the timestamp at the start of the code
     auto beg = std::chrono::high_resolution_clock::now();
 

@@ -284,6 +284,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ccsds.cpp" />
+    <ClCompile Include="CWStateDynamics.cpp" />
     <ClCompile Include="mainBackend.cpp" />
     <ClCompile Include="N_Body_Simulation.cpp" />
     <ClCompile Include="SPICEQuery.cpp" />
@@ -291,6 +292,7 @@
   <ItemGroup>
     <ClInclude Include="ccsds.h" />
     <ClInclude Include="comms.h" />
+    <ClInclude Include="CWStateDynamics.h" />
     <ClInclude Include="data.h" />
     <ClInclude Include="mainBackend.h" />
     <ClInclude Include="N_Body_Simulation.h" />

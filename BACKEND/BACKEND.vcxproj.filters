@@ -27,6 +27,9 @@
     <ClCompile Include="ccsds.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CWStateDynamics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SPICEQuery.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="comms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CWStateDynamics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

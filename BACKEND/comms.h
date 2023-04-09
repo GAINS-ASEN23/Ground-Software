@@ -152,16 +152,15 @@ struct Client {
             return;
         }
         // receive telemetry packet - this will call the receive_packet() function
-        //GAINS_TLM_PACKET tlm_packet;
-        //tlm_packet.FullHeader.SpacePacket.Hdr.StreamId[0] = recv_buffer;
-        //tlm_packet.FullHeader.SpacePacket.Hdr.StreamId[1] = ;
-        //std::cout << "Received: '" << receive_uint32 << "' (" << error.message() << ")\n";
+        GAINS_TLM_PACKET tlm_packet;
+        tlm_packet = readPacket(recv_buffer);
+        std::cout << "Successfully read in the data packet \n";
 
         // Receive Time Packets
-        float receive_float = 0;
+        /*float receive_float = 0;
         uint32_t time_bits = ((recv_buffer[3] << 24) | (recv_buffer[2] << 16) | (recv_buffer[1] << 8) | recv_buffer[0]);
         memcpy(&receive_float, &time_bits, sizeof(float)); 
-        std::cout << "Received: '" << receive_float << "' (" << error.message() << ")\n";
+        std::cout << "Received: '" << receive_float << "' (" << error.message() << ")\n";*/
 
         // receive string
         //std::cout << "Received: '" << std::string(recv_buffer.begin(), recv_buffer.begin() + bytes_transferred) << "' (" << error.message() << ")\n";
@@ -199,18 +198,6 @@ struct Client {
 // end comms setup
 
 // Begin multi threading setup
-
-//struct GAINS_TLM_PACKET {
-//    uint8_t     TlmHeader[CFE_SB_TLM_HDR_SIZE]{ 0 }; //can give type telemetry packet
-//    uint8_t     ci_command_error_count{ 0 };
-//    double      position_x{ 0 };
-//    double      position_y{ 0 };
-//    double      position_z{ 0 };
-//    double      velocity_x{ 0 };
-//    double      velocity_y{ 0 };
-//    double      velocity_z{ 0 };
-//};
-
 
 class ethernet_data {
 public:

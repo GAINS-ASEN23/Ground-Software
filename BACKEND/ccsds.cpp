@@ -70,9 +70,16 @@ GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAn
 }
 
 
-GAINS_TLM_PACKET readPacket(boost::array<char, 1024> recv_buffer) { // we need to program this to decode a buffer (an array of uint8_t) and put it into the SPP format
+GAINS_TLM_PACKET readPacket(boost::array<uint8_t, 256> recv_buffer) { // we need to program this to decode a buffer (an array of uint8_t) and put it into the SPP format
    // incoming buffer will be 72 bytes long (72 uint8_t)
     GAINS_TLM_PACKET data;
+
+    /*uint8_t temp_uint8_t = (uint8_t)recv_buffer[55];
+    memcpy(&data.FullHeader.Sec.Mode, &temp_uint8_t, sizeof(float));*/
+
+    data.FullHeader.Sec.Mode = (uint8_t)recv_buffer[55];
+
+    std::cout << "Received data packet mode = " << data.FullHeader.Sec.Mode << "\n";
 
     int offset = 0;
     
@@ -84,6 +91,7 @@ GAINS_TLM_PACKET readPacket(boost::array<char, 1024> recv_buffer) { // we need t
         recv_buffer[2 + offset] << 16 |
         recv_buffer[1 + offset] << 8 |
         recv_buffer[0 + offset];
+    //memcpy(&receive_float, &time_bits, sizeof(float));
     
     offset = offset + 8;
 
@@ -141,10 +149,10 @@ GAINS_TLM_PACKET readPacket(boost::array<char, 1024> recv_buffer) { // we need t
     
     offset = offset + 8;
 
-    data.ci_command_error_count = recv_buffer[offset]; // Read in the Z position
+    data.ci_command_error_count = recv_buffer[offset]; 
     offset = offset + 1;
 
-    data.FullHeader.Sec.Mode = recv_buffer[offset];
+    data.FullHeader.Sec.Mode = recv_buffer[offset]; // We will have
     offset = offset + 1;
 
     data.FullHeader.Sec.Time = recv_buffer[3 + offset] << 24 |

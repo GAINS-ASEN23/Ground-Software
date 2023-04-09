@@ -95,7 +95,8 @@ struct Client {
     boost::asio::io_service io_service;
     udp::socket socket{ io_service };
     //boost::array<char, 1024> recv_buffer;
-    boost::array<uint8_t, 256> recv_buffer;
+
+    boost::array<uint8_t, 72> recv_buffer;
     udp::endpoint remote_endpoint;
     boost::system::error_code receive_error;
     size_t packetReceiveLen;

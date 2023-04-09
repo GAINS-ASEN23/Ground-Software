@@ -144,6 +144,8 @@ GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position
 
 GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAngle2, double betaAngle3, double betaAngle4, float time, int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag);
 
-GAINS_TLM_PACKET readPacket(boost::array<uint8_t, 256> recv_buffer);
+GAINS_TLM_PACKET readPacket(boost::array<uint8_t, 72> recv_buffer);
+
+void print_GAINS_TLM_PACKET(GAINS_TLM_PACKET tlm_packet);
 
 #endif

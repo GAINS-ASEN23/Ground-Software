@@ -433,14 +433,15 @@ int main()
             //Send_String(input_string, teensy_ipaddress, teensy_port);
             //printf("Sent message at time: %f \n", currentFrame);
 
-            float input_float = currentFrame;
-            std::cout << "Input float is '" << input_float << "'\nSending it to Sender Function...\n";
-            Send_Float(input_float, teensy_ipaddress, teensy_port);
-            printf("Sent float at time: %f \n", currentFrame);
+            //float input_float = currentFrame;
+            //std::cout << "Input float is '" << input_float << "'\nSending it to Sender Function...\n";
+            //Send_Float(input_float, teensy_ipaddress, teensy_port);
+            //printf("Sent float at time: %f \n", currentFrame);
 
-            //GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(1.1, 2.2, 3.3, 4.4, 5.5, 6.6, currentFrame, 0, 1, 0, 0, 0, 0);
-            //Send_Data_Packet(tlm_packet, teensy_ipaddress, teensy_port);
-            //printf("Sent data packet at time: %f \n", currentFrame);
+            GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(1.1, 2.2, 3.3, 4.4, 5.5, 6.6, currentFrame, 0, 1, 0, 0, 0, 0);
+            print_GAINS_TLM_PACKET(tlm_packet);
+            Send_Data_Packet(tlm_packet, teensy_ipaddress, teensy_port);
+            printf("Sent data packet at time: %f \n", currentFrame);
 
             shouldSendMessage = false;
         }

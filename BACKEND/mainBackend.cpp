@@ -7,11 +7,6 @@
 #include <iostream>
 #include <chrono>
 #include "..\Libraries\include\Eigen\Dense"
-/*#include "boost/array.hpp"
-#include "boost/asio.hpp"
-#include <ctime>
-//#include <boost/bind.hpp>
-#include <boost/bind/bind.hpp>*/
 
 #include "mainBackend.h"
 
@@ -22,19 +17,23 @@ int main()
     // Recording the timestamp at the start of the code
     auto beg = std::chrono::high_resolution_clock::now();
 
-    NBODYSIM nbodyObj;
-    
-    // Integration Stuff
-    double totTime = 60 * 60 * 3;
-    double dt = 5;
+    /* MAIN CODE BEGIN */
 
-    std::cout << "NBODYSIM Running..... \n";
+    CWSTATE cwstate;
+    double dt = 1;
+   
+    // Constants
+    double G = 6.67e-20;														// Gravitational Constant (km^3/kg-s^2)
+    double M_Mn = 7.34767309e22;												// Mass of Moon (Kg)
+    double r_Moon = 1737447.78/1000;										    // Radius of the Moon [m]
 
-    std::vector<std::vector<double>> PosVector = nbodyObj.NBODYFUNC_MSC(totTime, dt, dateEx, V_scM, R_scM);
+    double n = sqrt((G * M_Mn) / (pow(50 + r_Moon, 3)));					    // Compute the Mean Motion for the CW Equations
 
-    for (size_t j = PosVector.size(); j-- > 0; ) {
-        printf("\n %g %g %g;", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
-    }
+    Eigen::MatrixXd F_matrix = cwstate.F_matrix(dt, n);
+
+    std::cout << "Here is the matrix m:\n" << F_matrix << std::endl;
+
+    /* MAIN CODE END */
 
     // Taking a timestamp after the code is ran
     auto end = std::chrono::high_resolution_clock::now();

@@ -141,11 +141,12 @@ struct headerData {
 CCSDS_PriHdr_t writeHeader(int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag);
 
 GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position_y, double position_z, double velocity_x, double velocity_y, double velocity_z, float time, int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag);
-
 GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAngle2, double betaAngle3, double betaAngle4, float time, int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag);
 
-GAINS_TLM_PACKET readPacket(boost::array<uint8_t, 72> recv_buffer);
+GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 72> recv_buffer);
+GAINS_STAR_PACKET read_STAR_Packet(boost::array<uint8_t, 72> recv_buffer);
 
 void print_GAINS_TLM_PACKET(GAINS_TLM_PACKET tlm_packet);
+void print_GAINS_STAR_PACKET(GAINS_STAR_PACKET tlm_packet);
 
 #endif

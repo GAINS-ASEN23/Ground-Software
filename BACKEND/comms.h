@@ -59,7 +59,7 @@ void Send_Float(float in, std::string send_ipaddress, int send_port) {
     std::cout << "Sent Payload --- " << sent << "\n";
 }
 
-void Send_Data_Packet(GAINS_TLM_PACKET tlm_packet, std::string send_ipaddress, int send_port) {
+void Send_TLM_Packet(GAINS_TLM_PACKET tlm_packet, std::string send_ipaddress, int send_port) {
     // this function sends a udp message to a specific ipaddress and port
     std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
     boost::asio::io_service io_service;
@@ -75,7 +75,7 @@ void Send_Data_Packet(GAINS_TLM_PACKET tlm_packet, std::string send_ipaddress, i
     std::cout << "Sent Payload --- " << sent << "\n";
 }
 
-void Send_Star_Packet(GAINS_STAR_PACKET star_packet, std::string send_ipaddress, int send_port) {
+void Send_STAR_Packet(GAINS_STAR_PACKET star_packet, std::string send_ipaddress, int send_port) {
     // this function sends a udp message to a specific ipaddress and port
     std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
     boost::asio::io_service io_service;
@@ -152,10 +152,20 @@ struct Client {
             std::cout << "Receive failed: " << error.message() << "\n";
             return;
         }
-        // receive telemetry packet - this will call the receive_packet() function
-        GAINS_TLM_PACKET tlm_packet;
-        tlm_packet = readPacket(recv_buffer);
-        std::cout << "Successfully read in the data packet \n";
+        if (recv_buffer[12] == 0) {
+            // receive telemetry packet
+            GAINS_TLM_PACKET tlm_packet;
+            tlm_packet = read_TLM_Packet(recv_buffer);
+            std::cout << "Successfully read in the data packet. These are the contents of the TLM Packet: \n";
+            print_GAINS_TLM_PACKET(tlm_packet);
+        }
+        else {
+            // receive star tracker packet
+            GAINS_STAR_PACKET star_packet;
+            star_packet = read_STAR_Packet(recv_buffer);
+            std::cout << "Successfully read in the data packet. These are the contents of the STAR packet: \n";
+            print_GAINS_STAR_PACKET(star_packet);
+        }
 
         // Receive Time Packets
         /*float receive_float = 0;

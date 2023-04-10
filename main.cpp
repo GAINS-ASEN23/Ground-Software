@@ -240,6 +240,28 @@ int main()
     // Initialize the thread safe class in the heap because we need to be able to access from anywhere (i.e. outside the main function's scope)
     ethernet_data* eth_data = new ethernet_data();
 
+    // Initialize a vector to hold all of the data points to be plotted
+    // each row holds another set of data. Column 0 holds the time, Columns [1,2,3] hold the xyz postions, Columns [4,5,6] hold the xyz velocities
+    std::vector<std::vector<double>>test_data;
+    std::vector<std::vector<double>>received_data; 
+    //std::vector<std::vector<double>>predicted_data;
+    // 
+    //Generate Example data
+    test_data.at(0).at(0) = 0;
+    test_data.at(0).at(1) = 0; test_data.at(0).at(2) = 0; test_data.at(0).at(3) = 0;
+    test_data.at(0).at(4) = 5; test_data.at(0).at(5) = -3; test_data.at(0).at(6) = 2;
+    for (int iterate = 1; iterate < 10; iterate++) {
+        test_data.at(iterate).at(0) = 0;
+
+        test_data.at(iterate).at(1) = test_data.at(iterate - 1).at(1) + test_data.at(iterate - 1).at(4);
+        test_data.at(iterate).at(2) = test_data.at(iterate - 1).at(2) + test_data.at(iterate - 1).at(5);
+        test_data.at(iterate).at(3) = test_data.at(iterate - 1).at(3) + test_data.at(iterate - 1).at(6);
+
+        test_data.at(iterate).at(4) = 5; 
+        test_data.at(iterate).at(5) = -3; 
+        test_data.at(iterate).at(6) = 2;
+    }
+
     // Create the model,view, and projection transformation matrices
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -440,7 +462,12 @@ int main()
 
             GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(1.1, 2.2, 3.3, 4.4, 5.5, 6.6, currentFrame, 0, 1, 0, 0, 0, 0);
             print_GAINS_TLM_PACKET(tlm_packet);
-            Send_Data_Packet(tlm_packet, teensy_ipaddress, teensy_port);
+            Send_TLM_Packet(tlm_packet, teensy_ipaddress, teensy_port);
+            printf("Sent data packet at time: %f \n", currentFrame);
+
+            GAINS_STAR_PACKET star_packet = GAINS_STAR_PACKET_constructor(1.1, 2.2, 3.3, 4.4, currentFrame, 0, 1, 0, 0, 0, 0);
+            print_GAINS_STAR_PACKET(star_packet);
+            Send_STAR_Packet(star_packet, teensy_ipaddress, teensy_port);
             printf("Sent data packet at time: %f \n", currentFrame);
 
             shouldSendMessage = false;

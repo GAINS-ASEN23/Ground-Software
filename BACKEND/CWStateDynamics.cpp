@@ -14,7 +14,7 @@
 *	SUMMARY: Loop through and compute the the position vector of the spacecraft using the Clohessy-Wiltshire Equations around Moon orbit.
 *
 */
-std::vector<std::vector<double>> CWSTATE::run_CW_Sim_Moon(double totTime, double dt, std::string date_0, float orbitAlt, Eigen::VectorXd Xn)
+std::vector<std::vector<double>> CWSTATE::run_CW_Sim_Moon(double totTime, double dt, std::string date_0, double orbitAlt, Eigen::VectorXd Xn)
 {
     // Define Spice Object for timing
     SPICE spiceObj;
@@ -44,8 +44,10 @@ std::vector<std::vector<double>> CWSTATE::run_CW_Sim_Moon(double totTime, double
         // Compute forward in time
         Xn = CWSTATE::F_matrix(dt, n) * Xn + CWSTATE::G_matrix(dt, n, t1, t2) * u_matrix;
 
+        printf("\n %g %g %g;", Xn.coeff(0), Xn.coeff(1), Xn.coeff(2));
+
         // Add to Position Vector
-        PosVector.push_back({ Xn.coeff(0,0), Xn.coeff(0,1), Xn.coeff(0,2) });
+        PosVector.push_back({ Xn.coeff(0), Xn.coeff(1), Xn.coeff(2) });
 
         // Increase Time Step
         epochTime += dt;

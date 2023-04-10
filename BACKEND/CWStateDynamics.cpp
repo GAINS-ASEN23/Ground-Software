@@ -14,8 +14,11 @@
 *	SUMMARY: Loop through and compute the the position vector of the spacecraft using the Clohessy-Wiltshire Equations around Moon orbit.
 *
 */
-std::vector<std::vector<double>> CWSTATE::run_CW_Sim_Moon(float orbitAlt)
+std::vector<std::vector<double>> CWSTATE::run_CW_Sim_Moon(double totTime, double dt, std::string date_0, double orbitAlt, Eigen::VectorXd Xn)
 {
+    // Define Spice Object for timing
+    SPICE spiceObj;
+
 	// Define Vector for return
 	std::vector<std::vector<double>> PosVector;
 
@@ -26,11 +29,31 @@ std::vector<std::vector<double>> CWSTATE::run_CW_Sim_Moon(float orbitAlt)
 
 	double n = sqrt((G * M_Mn) / (pow(orbitAlt + r_Moon, 3)));					// Compute the Mean Motion for the CW Equations
 
+    // Simulation Time
+    double epochTime = spiceObj.EpochTimeCall(date_0);
+    double t_end = epochTime + totTime;
+    double t1 = 0;
+    double t2 = 0 + dt;
+
     // Acceleration Input Vector of Zeros for now
     Eigen::Vector3d u_matrix(0, 0, 0);
 
 	// Simulation Loop
+    while (epochTime < t_end) {
 
+        // Compute forward in time
+        Xn = CWSTATE::F_matrix(dt, n) * Xn + CWSTATE::G_matrix(dt, n, t1, t2) * u_matrix;
+
+        printf("\n %g %g %g;", Xn.coeff(0), Xn.coeff(1), Xn.coeff(2));
+
+        // Add to Position Vector
+        PosVector.push_back({ Xn.coeff(0), Xn.coeff(1), Xn.coeff(2) });
+
+        // Increase Time Step
+        epochTime += dt;
+        t1 += dt;
+        t2 += dt;
+    }
 
 	return PosVector;
 }

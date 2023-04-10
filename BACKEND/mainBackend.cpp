@@ -19,19 +19,28 @@ int main()
 
     /* MAIN CODE BEGIN */
 
+    // Show the code running
+    std::cout << "CWSTATE Running..... \n";
+
+    // Integration Stuff
+    double totTime = 60 * 60 * 3;
+    double dt = 0.1;
+
     CWSTATE cwstate;
-    double dt = 1;
    
     // Constants
-    double G = 6.67e-20;														// Gravitational Constant (km^3/kg-s^2)
-    double M_Mn = 7.34767309e22;												// Mass of Moon (Kg)
     double r_Moon = 1737447.78/1000;										    // Radius of the Moon [m]
 
-    double n = sqrt((G * M_Mn) / (pow(50 + r_Moon, 3)));					    // Compute the Mean Motion for the CW Equations
+    // Example Specific
+    double orbitAlt = 50 + r_Moon;
+    Eigen::VectorXd Xn(6);
+    Xn << 0, 0, 0, 0, 0, 0;
 
-    Eigen::MatrixXd F_matrix = cwstate.F_matrix(dt, n);
+    std::vector<std::vector<double>> PosVector = cwstate.run_CW_Sim_Moon(totTime, dt, dateEx, orbitAlt, Xn);
 
-    std::cout << "Here is the matrix m:\n" << F_matrix << std::endl;
+    for (size_t j = PosVector.size(); j-- > 0; ) {
+        printf("\n %g %g %g;", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
+    }
 
     /* MAIN CODE END */
 

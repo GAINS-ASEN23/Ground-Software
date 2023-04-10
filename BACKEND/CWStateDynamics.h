@@ -15,7 +15,7 @@ class CWSTATE
 {
 public:
 	// Compute State
-	std::vector<std::vector<double>> run_CW_Sim_Moon(float orbitAlt);
+	std::vector<std::vector<double>> run_CW_Sim_Moon(double totTime, double dt, std::string date_0, double orbitAlt, Eigen::VectorXd Xn);
 
 	// Individual Matrices
 	Eigen::MatrixXd F_matrix(double dt, double n);

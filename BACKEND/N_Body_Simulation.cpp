@@ -153,7 +153,6 @@ Eigen::RowVector3d NBODYSIM::get_Accel_SEMSC(double epochTime, Eigen::RowVector3
 */
 Eigen::RowVector3d NBODYSIM::get_Accel_MSC(double epochTime, Eigen::RowVector3d v_vec, Eigen::RowVector3d r_vec)
 {
-	SPICE spiceObj;
 
 	// Constants
 	double G = 6.67e-20;														// Gravitational Constant (km^3/kg-s^2)

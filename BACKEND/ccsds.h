@@ -1,7 +1,7 @@
 #pragma once
 /* CCSDS Space Protocol Packet Header File
 * GAINS Senior Project Capstone Ground Software Backend
-* Authors: Jason Popich, Cannon Palmer
+* Authors: Jason Popich, Brian Trybus, Cannon Palmer, Tucker Peyok, Ben McHugh
 * Purpose: This is the header file which defines the CCSDS Space Packet Struct Format
 */
 
@@ -70,10 +70,10 @@ typedef struct {
 
 typedef struct {
 
-    float  Time; //
-    uint8_t Mode; // 1 byte
+    float  Time;  /* packet time float */
+    uint8_t Mode; /* packet mode word */
 
-} CCSDS_TlmSecHdr_t; // total of 5 bytes
+} CCSDS_TlmSecHdr_t; 
 
 typedef struct
 {
@@ -96,15 +96,15 @@ typedef struct
 
 typedef struct
 {
-    CCSDS_SpacePacket_t  SpacePacket; // 6 bytes   /**< \brief Standard Header on all packets */
-    CCSDS_TlmSecHdr_t    Sec; // 5 bytes
+    CCSDS_SpacePacket_t  SpacePacket; /**< \brief Standard Header on all packets */
+    CCSDS_TlmSecHdr_t    Sec;
 } CCSDS_TelemetryPacket_t;
 
-// overall this seems to send as a 72 byte
-struct GAINS_TLM_PACKET { // how many bytes long is this? 
-    CCSDS_TelemetryPacket_t  FullHeader; // 11 bytes
-    uint8_t     ci_command_error_count{ 0 }; //ignore for now, 1 byte
-    double      position_x{ 0 }; // 8 bytes ...
+/*----- Combined telemetry packet -----*/
+struct GAINS_TLM_PACKET { /* Length will be 72 bytes due to data alignment */
+    CCSDS_TelemetryPacket_t  FullHeader;
+    uint8_t     ci_command_error_count{ 0 };
+    double      position_x{ 0 };
     double      position_y{ 0 };
     double      position_z{ 0 };
     double      velocity_x{ 0 };
@@ -112,10 +112,10 @@ struct GAINS_TLM_PACKET { // how many bytes long is this?
     double      velocity_z{ 0 };
 };
 
-
-struct GAINS_STAR_PACKET {
+/*----- Combined Star Tracker packet -----*/
+struct GAINS_STAR_PACKET { /* Length will be 72 bytes due to data alignment */
     CCSDS_TelemetryPacket_t     FullHeader;
-    uint8_t     ci_command_error_count{ 0 }; //ignore for now
+    uint8_t     ci_command_error_count{ 0 };
     double      betaAngle1{ 0 };
     double      betaAngle2{ 0 };
     double      betaAngle3{ 0 };
@@ -129,7 +129,7 @@ struct headerData {
     int appId = 0;
     bool secondHeader = 0;
     bool type = 0;
-    bool version = 0;
+    int version = 0;
     int seqCount = 0;
     int segFlag = 0;
     int length = 0;
@@ -138,10 +138,11 @@ struct headerData {
 
 #define CFE_SB_TLM_HDR_SIZE sizeof(CCSDS_TelemetryPacket_t)
 
-CCSDS_PriHdr_t writeHeader(int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag);
+CCSDS_PriHdr_t writeHeader(int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag);
+headerData readHeader(CCSDS_PriHdr_t hdr);
 
-GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position_y, double position_z, double velocity_x, double velocity_y, double velocity_z, float time, int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag);
-GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAngle2, double betaAngle3, double betaAngle4, float time, int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag);
+GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position_y, double position_z, double velocity_x, double velocity_y, double velocity_z, float time, int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag);
+GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAngle2, double betaAngle3, double betaAngle4, float time, int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag);
 
 GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 72> recv_buffer);
 GAINS_STAR_PACKET read_STAR_Packet(boost::array<uint8_t, 72> recv_buffer);

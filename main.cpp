@@ -242,25 +242,25 @@ int main()
 
     // Initialize a vector to hold all of the data points to be plotted
     // each row holds another set of data. Column 0 holds the time, Columns [1,2,3] hold the xyz postions, Columns [4,5,6] hold the xyz velocities
-    std::vector<std::vector<double>>test_data;
-    std::vector<std::vector<double>>received_data; 
-    //std::vector<std::vector<double>>predicted_data;
-    // 
-    //Generate Example data
-    test_data.at(0).at(0) = 0;
-    test_data.at(0).at(1) = 0; test_data.at(0).at(2) = 0; test_data.at(0).at(3) = 0;
-    test_data.at(0).at(4) = 5; test_data.at(0).at(5) = -3; test_data.at(0).at(6) = 2;
-    for (int iterate = 1; iterate < 10; iterate++) {
-        test_data.at(iterate).at(0) = 0;
+    //std::vector<std::vector<double>>test_data;
+    //std::vector<std::vector<double>>received_data; 
+    ////std::vector<std::vector<double>>predicted_data;
+    //// 
+    ////Generate Example data
+    //test_data.at(0).at(0) = 0;
+    //test_data.at(0).at(1) = 0; test_data.at(0).at(2) = 0; test_data.at(0).at(3) = 0;
+    //test_data.at(0).at(4) = 5; test_data.at(0).at(5) = -3; test_data.at(0).at(6) = 2;
+    //for (int iterate = 1; iterate < 10; iterate++) {
+    //    test_data.at(iterate).at(0) = 0;
 
-        test_data.at(iterate).at(1) = test_data.at(iterate - 1).at(1) + test_data.at(iterate - 1).at(4);
-        test_data.at(iterate).at(2) = test_data.at(iterate - 1).at(2) + test_data.at(iterate - 1).at(5);
-        test_data.at(iterate).at(3) = test_data.at(iterate - 1).at(3) + test_data.at(iterate - 1).at(6);
+    //    test_data.at(iterate).at(1) = test_data.at(iterate - 1).at(1) + test_data.at(iterate - 1).at(4);
+    //    test_data.at(iterate).at(2) = test_data.at(iterate - 1).at(2) + test_data.at(iterate - 1).at(5);
+    //    test_data.at(iterate).at(3) = test_data.at(iterate - 1).at(3) + test_data.at(iterate - 1).at(6);
 
-        test_data.at(iterate).at(4) = 5; 
-        test_data.at(iterate).at(5) = -3; 
-        test_data.at(iterate).at(6) = 2;
-    }
+    //    test_data.at(iterate).at(4) = 5; 
+    //    test_data.at(iterate).at(5) = -3; 
+    //    test_data.at(iterate).at(6) = 2;
+    //}
 
     // Create the model,view, and projection transformation matrices
     glm::mat4 model = glm::mat4(1.0f);
@@ -348,17 +348,9 @@ int main()
     float spiceTempData[3 * lineCount];
     float dataTimeSpace = 24.0 * 3600.0;
     for (int i = 0; i < 30; i = i + 3) {
-        //if (refFrame == 0) {
             spiceTemp[i] = float(PosVectorEarth.at(i).at(0));
             spiceTemp[i + 1] = float(PosVectorEarth.at(i).at(1));
             spiceTemp[i + 2] = float(PosVectorEarth.at(i).at(2));
-        /*}
-        else if (refFrame == 1) {
-            spiceTemp[i] = float(PosVectorMoon.at(i).at(0));
-            spiceTemp[i + 1] = float(PosVectorMoon.at(i).at(1));
-            spiceTemp[i + 2] = float(PosVectorMoon.at(i).at(2));
-        }*/
-
     }
 
     // --- Spice data testing from backend ---
@@ -425,7 +417,6 @@ int main()
         // --- Communication Receive ---
         teensy_ipaddress = std::to_string(teensy_ip_part1) + "." + std::to_string(teensy_ip_part2) + "." + std::to_string(teensy_ip_part3) + "." + std::to_string(teensy_ip_part4);
         receive_ipaddress = std::to_string(receive_ip_part1) + "." + std::to_string(receive_ip_part2) + "." + std::to_string(receive_ip_part3) + "." + std::to_string(receive_ip_part4);
-        //eth_data->set_ip(receive_ipaddress,receive_port);
 
         // Communications Update Ip Address and Port
         if (shouldInitiateIPConnection) {
@@ -450,17 +441,13 @@ int main()
 
         // --- Communication Send ---
         if (shouldSendMessage) {
-            //std::string input_string = "Hello BeneetHello BeneetHello Beneet"; // just dont send a string of length 12
-            //std::cout << "Input string is '" << input_string.c_str() << "'\nSending it to Sender Function...\n";
-            //Send_String(input_string, teensy_ipaddress, teensy_port);
-            //printf("Sent message at time: %f \n", currentFrame);
-
-            //float input_float = currentFrame;
-            //std::cout << "Input float is '" << input_float << "'\nSending it to Sender Function...\n";
-            //Send_Float(input_float, teensy_ipaddress, teensy_port);
-            //printf("Sent float at time: %f \n", currentFrame);
+            float input_float = currentFrame;
+            std::cout << "Input float is '" << input_float << "'\nSending it to Sender Function...\n";
+            Send_Float(input_float, teensy_ipaddress, teensy_port);
+            printf("Sent float at time: %f \n", currentFrame);
 
             GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(1.1, 2.2, 3.3, 4.4, 5.5, 6.6, currentFrame, 0, 1, 0, 0, 0, 0);
+            headerData sendHdr = readHeader(tlm_packet.FullHeader.SpacePacket.Hdr);
             print_GAINS_TLM_PACKET(tlm_packet);
             Send_TLM_Packet(tlm_packet, teensy_ipaddress, teensy_port);
             printf("Sent data packet at time: %f \n", currentFrame);

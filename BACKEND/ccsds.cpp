@@ -1,15 +1,14 @@
 /* CCSDS Space Protocol Packet Functions File
 * GAINS Senior Project Capstone Ground Software Backend
-* Authors: Brian Trybus,
+* Authors: Brian Trybus, Cannon Palmer, Tucker Peyok, Ben McHugh
 * Purpose: This has functions help with using the CCSDS Space Packet Structs
 */
 
 #include "ccsds.h"
 
-CCSDS_PriHdr_t writeHeader(int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag) {
+CCSDS_PriHdr_t writeHeader(int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag) {
 
     CCSDS_PriHdr_t header;
-    //apID = 0;
     uint16_t StreamID = (0x07FF & apID) | ((0x1 & secondHeader) << 11) | ((0x1 & type) << 12) | ((0x7 & version) << 13);
     header.StreamId[0] = (0xFF00 & StreamID) >> 8;
     header.StreamId[1] = (0xFF & StreamID);
@@ -25,7 +24,35 @@ CCSDS_PriHdr_t writeHeader(int apID, bool secondHeader, bool type, bool version,
 
 }
 
-GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position_y, double position_z, double velocity_x, double velocity_y, double velocity_z, float time, int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag) {
+headerData readHeader(CCSDS_PriHdr_t hdr) {
+
+    headerData header;
+
+    header.appId = (int)(((0x07 & hdr.StreamId[0]) << 8) | hdr.StreamId[1]);
+    header.secondHeader = (bool)((0x08 & hdr.StreamId[0])>>3);
+    header.type = (bool)((0x10 & hdr.StreamId[0])>>4);
+    header.version = (int)((0xE0 & hdr.StreamId[0])>>5);
+
+    header.seqCount = (int)(((0x3F & hdr.Sequence[0]) << 8) | hdr.Sequence[1]);
+    header.segFlag = (int)((0xC0 & hdr.Sequence[0])>>6);
+
+    uint16_t Length = (int)((hdr.Length[0] << 8) | hdr.Length[1]);
+    header.length = (int)(Length);
+
+    std::cout << "Read the Packet Header \n";
+    std::cout << "appID = " << header.appId << std::endl;
+    std::cout << "secondHeader = " << header.secondHeader << std::endl;
+    std::cout << "type = " << header.type << std::endl;
+    std::cout << "version = " << header.version << std::endl;
+    std::cout << "seqCount = " << header.seqCount << std::endl;
+    std::cout << "segFlag = " << header.segFlag << std::endl;
+    std::cout << "length = " << header.length << std::endl;
+
+    return header;
+
+}
+
+GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position_y, double position_z, double velocity_x, double velocity_y, double velocity_z, float time, int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag) {
 
     GAINS_TLM_PACKET tlmPacket;
 
@@ -48,7 +75,7 @@ GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position
     return tlmPacket;
 }
 
-GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAngle2, double betaAngle3, double betaAngle4, float time, int apID, bool secondHeader, bool type, bool version, int seqCount, int segFlag) {
+GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAngle2, double betaAngle3, double betaAngle4, float time, int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag) {
 
     GAINS_STAR_PACKET starPacket;
 

@@ -232,6 +232,18 @@ public:
         data_mut.unlock();
     }
 
+    void set_close_thread() {
+        data_mut.lock();
+        ethernet_data::close_thread = true;
+        data_mut.unlock();
+    }
+
+    void get_shouldCloseThread(bool& shouldCloseThread) {
+        data_mut.lock();
+        shouldCloseThread = ethernet_data::close_thread;
+        data_mut.unlock();
+    }
+
 
 private:
     std::mutex data_mut;
@@ -240,7 +252,7 @@ private:
     std::string ipaddress{ "0.0.0.0" };
     int port{8889};
     bool establish_ip{ false };
-    //bool close_thread{false}; // is there a handler I can enable when thread.join() occurs that will properly end the receive and stop the thread
+    bool close_thread{ false };
 
 };
 
@@ -261,6 +273,7 @@ public:
         bool connection_established = false;
         int count = 0;
         bool initiated = false;
+        bool shouldCloseThread = false;
 
         // Dummy vars
         int i = 0;
@@ -269,9 +282,10 @@ public:
 
         // Now loop infinitely in here unless some condition is met
         // Typically instead of true you would be looking for the CTRL-C keybind to safely exit...
-        while (true)
+        while (!shouldCloseThread)
         {
             data_obj->get_connection_established(connection_established);
+            data_obj->get_shouldCloseThread(shouldCloseThread);
             if (connection_established) {
                 data_obj->get_ip(ipaddress, port);
                 count++;

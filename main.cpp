@@ -36,7 +36,7 @@ bool down;
 
 // set the mode that the GUI and orbital simulation is in
 // 0 = orbital simulation, 1 = free movement, 2 = cnc testing mode
-int simMode = 0;
+int simMode = 1;
 
 // set the reference frame that the orbital simulation is in
 // 0 = Earth Centered, 1 = Moon Centered
@@ -45,7 +45,7 @@ int refFrame = 1;
 // define utility functions
 unsigned int loadTexture(unsigned char* image_data, int width, int height, int nrChannels, unsigned int texture);
 int drawPlanet(shader shaderProgram, unsigned int VAO, unsigned int texture, float scale, float planetScale, float rotation, float positions[3], glm::mat4 model, glm::mat4 view, glm::mat4 proj, bool posFromObject, int sphereIndexCount);
-// needs for function: spiceTemp positions, actualScale, earth_rotation, texture, VAO
+void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, int sendIP[4], int& send_port, int receiveIP[4], int& receive_port, int window_width);
 
 int main()
 {
@@ -188,22 +188,10 @@ int main()
 
     // initialize variables for communications
     std::string teensy_ipaddress = "127.0.0.1";//"21.0.0.103";
-    int teensy_ip_part1 = 127;
-    int teensy_ip_part2 = 0;
-    int teensy_ip_part3 = 0;
-    int teensy_ip_part4 = 1;
-    int teensy_port = 8889;
-    //std::string teensy_ipaddress = "21.0.0.103";//"21.0.0.103";
-    //int teensy_ip_part1 = 21;
-    //int teensy_ip_part2 = 0;
-    //int teensy_ip_part3 = 0;
-    //int teensy_ip_part4 = 103;
-    //int teensy_port = 8888;
+    int teensy_ip[4] = { 127,0,0,1 };
+    int teensy_port = 8888;
     std::string receive_ipaddress = "0.0.0.0";// "21.0.0.2";
-    int receive_ip_part1 = 0;
-    int receive_ip_part2 = 0;
-    int receive_ip_part3 = 0;
-    int receive_ip_part4 = 0;
+    int receive_ip[4] = { 0,0,0,0 };
     int receive_port = 8889;
 
     // Define variables for use in loop
@@ -224,15 +212,18 @@ int main()
     }
     else{
         actualScale = 1000;
+        timeScale = 1;
     }
     float tempVert[3 * lineCount];
     int step = 0;
     float lastTime = 0;
+    int screen_width, screen_height;
 
     // Initialize variables for communications and multithreading
     bool shouldSendMessage = false;
     bool shouldInitiateIPConnection = false;
     bool ethernet_data_ready_flag = false;
+    bool showComms = true;
 
     // Initialize the local data struct in the stack because we just need it in the main function
     GAINS_TLM_PACKET ethernet_packet;
@@ -242,25 +233,18 @@ int main()
 
     // Initialize a vector to hold all of the data points to be plotted
     // each row holds another set of data. Column 0 holds the time, Columns [1,2,3] hold the xyz postions, Columns [4,5,6] hold the xyz velocities
-    //std::vector<std::vector<double>>test_data;
-    //std::vector<std::vector<double>>received_data; 
-    ////std::vector<std::vector<double>>predicted_data;
-    //// 
-    ////Generate Example data
-    //test_data.at(0).at(0) = 0;
-    //test_data.at(0).at(1) = 0; test_data.at(0).at(2) = 0; test_data.at(0).at(3) = 0;
-    //test_data.at(0).at(4) = 5; test_data.at(0).at(5) = -3; test_data.at(0).at(6) = 2;
-    //for (int iterate = 1; iterate < 10; iterate++) {
-    //    test_data.at(iterate).at(0) = 0;
-
-    //    test_data.at(iterate).at(1) = test_data.at(iterate - 1).at(1) + test_data.at(iterate - 1).at(4);
-    //    test_data.at(iterate).at(2) = test_data.at(iterate - 1).at(2) + test_data.at(iterate - 1).at(5);
-    //    test_data.at(iterate).at(3) = test_data.at(iterate - 1).at(3) + test_data.at(iterate - 1).at(6);
-
-    //    test_data.at(iterate).at(4) = 5; 
-    //    test_data.at(iterate).at(5) = -3; 
-    //    test_data.at(iterate).at(6) = 2;
-    //}
+    std::vector<std::vector<double>>test_data;
+    std::vector<std::vector<double>>received_data; 
+    //std::vector<std::vector<double>>predicted_data;
+    // 
+    //Generate Example data
+    test_data.push_back({ 0, 0, 0, 0, 5, -3, 2 });
+    for (int iterate = 1; iterate < 10; iterate++) {
+        test_data.push_back({ 0, test_data.at(iterate - 1).at(1) + test_data.at(iterate - 1).at(4),
+            test_data.at(iterate - 1).at(2) + test_data.at(iterate - 1).at(5),
+            test_data.at(iterate - 1).at(3) + test_data.at(iterate - 1).at(6),
+            5, -3, 2 });
+    }
 
     // Create the model,view, and projection transformation matrices
     glm::mat4 model = glm::mat4(1.0f);
@@ -411,12 +395,10 @@ int main()
         view = glm::mat4(1.0f);
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f); // creates perspective projection - farther objects are smaller
-        //projection = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f); // creates orthographic projection - farther objects are same size
-        // ^ this should be more accurate for our uses, but we must find out what is breaking this and fix it before use
 
         // --- Communication Receive ---
-        teensy_ipaddress = std::to_string(teensy_ip_part1) + "." + std::to_string(teensy_ip_part2) + "." + std::to_string(teensy_ip_part3) + "." + std::to_string(teensy_ip_part4);
-        receive_ipaddress = std::to_string(receive_ip_part1) + "." + std::to_string(receive_ip_part2) + "." + std::to_string(receive_ip_part3) + "." + std::to_string(receive_ip_part4);
+        teensy_ipaddress = std::to_string(teensy_ip[0]) + "." + std::to_string(teensy_ip[1]) + "." + std::to_string(teensy_ip[2]) + "." + std::to_string(teensy_ip[3]);
+        receive_ipaddress = std::to_string(receive_ip[0]) + "." + std::to_string(receive_ip[1]) + "." + std::to_string(receive_ip[2]) + "." + std::to_string(receive_ip[3]);
 
         // Communications Update Ip Address and Port
         if (shouldInitiateIPConnection) {
@@ -693,16 +675,18 @@ int main()
             }
         }
         else if (simMode == 1 || simMode == 2) {
+
             if (lock_motion == false) {
+                float speedUp = 10;
                 float timeRemainder = currentFrame - lastTime;
-                ins_rotation = fmod(ins_rotation + timeScale * 10 * (360.0f / 64.0f) * deltaTime, 360.0);
-                if (timeRemainder >= (0.1 / timeScale)) {
+                if (timeRemainder >= (1 / (timeScale * speedUp))) {
                     lastTime = currentFrame;
-                    step = step + std::floor(timeRemainder * timeScale);
+                    step = step + std::floor(timeRemainder * timeScale * speedUp);
                 }
             }
 
             // Calculate the current points to show on the 2D line
+            ins_rotation = fmod(step * (360.0f / 64.0f), 360.0f) + 270.0f;
             int currentStep = step % (std::size(circleVert) / 3);
             int line_temp_step;
             for (int i = 0; i < 3 * lineCount; i++) {
@@ -756,66 +740,8 @@ int main()
         }
 
         if (simMode == 0) {
-            // render the --- GUI --- (Design the GUI here)
-            ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
-            ImGui::SetNextWindowSize({ 570,240 }, ImGuiCond_Once); // ImGui Window width and window height
-            ImGui::Begin("GUI Window"); // creates the GUI and names it
-            ImGui::Button("Earth Centered ImGui Example Window");
-            ImGui::Checkbox("Lock Planet Movement", &lock_motion);
-            ImGui::SliderFloat("Actual Log Scale", &actualScale, 10e2, 10e9, "%1.0f", ImGuiSliderFlags_Logarithmic);
-            ImGui::SliderFloat("Frames Per Second", &timeScale, 0.1, 10e4, "%1.0f", ImGuiSliderFlags_Logarithmic);
-            ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);
-
-            ImGui::Text("Choose Reference Frame Center: ");
-            ImGui::SameLine();
-            if (ImGui::Button(" Earth ")) {
-                refFrame = 0;
-            }
-            ImGui::SameLine();
-            if (ImGui::Button(" Moon ")) {
-                refFrame = 1;
-            }
-
-            if (ImGui::Button(" Send Message ")) {
-                shouldSendMessage = true;
-            }
-            if (ImGui::Button(" Initiate Receiver ")) {
-                shouldInitiateIPConnection = true;
-            }
-
-            ImGui::Text("Teensy IpAddress");
-            ImGui::PushItemWidth(100);
-            ImGui::InputInt("T 1", &teensy_ip_part1);
-            ImGui::SameLine();
-            ImGui::PushItemWidth(100);
-            ImGui::InputInt("T 2", &teensy_ip_part2);
-            ImGui::SameLine();
-            ImGui::PushItemWidth(100);
-            ImGui::InputInt("T 3", &teensy_ip_part3);
-            ImGui::SameLine();
-            ImGui::PushItemWidth(100);
-            ImGui::InputInt("T 4", &teensy_ip_part4);
-            ImGui::InputInt("Teensy Port", &teensy_port);
-
-            ImGui::Text("Receiving IpAddress");
-            ImGui::PushItemWidth(100);
-            ImGui::InputInt("R 1", &receive_ip_part1);
-            ImGui::SameLine();
-            ImGui::PushItemWidth(100);
-            ImGui::InputInt("R 2", &receive_ip_part2);
-            ImGui::SameLine();
-            ImGui::PushItemWidth(100);
-            ImGui::InputInt("R 3", &receive_ip_part3);
-            ImGui::SameLine();
-            ImGui::PushItemWidth(100);
-            ImGui::InputInt("R 4", &receive_ip_part4);
-            ImGui::InputInt("Receiving Port", &receive_port);
-
-            ImGui::End();
-
             // New window overlay to do: fix scaling due to camera offset and zoom (will we need to do the reference distance another way? or even take it out?)
             //    Will need to adjust openGL coords (-1 to 1) of objects into ImGui pixel coords when tracking objects with icons
-            int screen_width, screen_height;
             glfwGetFramebufferSize(window, &screen_width, &screen_height);
             ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
             ImGui::SetNextWindowSize({ float(screen_width),float(screen_height) }, 0); // ImGui Window width and window height
@@ -856,20 +782,30 @@ int main()
             myDrawList->AddLine(ImVec2(a[0], a[1] - 10), ImVec2(a[0], a[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Left Verticle Line
             myDrawList->AddLine(ImVec2(b[0], b[1] - 10), ImVec2(b[0], b[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Right Verticle Line
             ImGui::End();
-        }
-        else if (simMode == 1) {
-            // render the GUI for the Free Roam Mode
+            
+            // render the --- GUI --- (Design the GUI here)
             ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
-            ImGui::SetNextWindowSize({ 400,160 }, ImGuiCond_Once); // ImGui Window width and window height
-            ImGui::Begin("GUI Window"); // creates the GUI and names it
-            ImGui::Button("Earth Centered ImGui Example Window");
-            ImGui::Text("Example Trajectory Only - Not The Intended Test Trajectory");
-            ImGui::Checkbox("Lock Movement", &lock_motion);
-            ImGui::SliderFloat("Scale (mm)", &actualScale, 1, 10e5, "%1.0f", ImGuiSliderFlags_Logarithmic);
-            ImGui::SliderFloat("Time Speed", &timeScale, 0.1, 10);
-            ImGui::End();
+            ImGui::SetNextWindowSize({ 570,240 }, ImGuiCond_Once); // ImGui Window width and window height
+            ImGui::Begin("Orbital Simulation GUI"); // creates the GUI and names it
+            ImGui::Checkbox("Lock Planet Movement", &lock_motion);
+            ImGui::SameLine();
+            ImGui::Checkbox("Show Comms", &showComms);
+            ImGui::SliderFloat("Actual Log Scale", &actualScale, 10e2, 10e9, "%1.0f", ImGuiSliderFlags_Logarithmic);
+            ImGui::SliderFloat("Frames Per Second", &timeScale, 0.1, 10e4, "%1.0f", ImGuiSliderFlags_Logarithmic);
+            ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);
 
-            int screen_width, screen_height;
+            ImGui::Text("Choose Reference Frame Center: ");
+            ImGui::SameLine();
+            if (ImGui::Button(" Earth ")) {
+                refFrame = 0;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(" Moon ")) {
+                refFrame = 1;
+            }
+
+        }
+        else if (simMode == 1 || simMode == 2) {
             glfwGetFramebufferSize(window, &screen_width, &screen_height);
             ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
             ImGui::SetNextWindowSize({ float(screen_width),float(screen_height) }, 0); // ImGui Window width and window height
@@ -906,7 +842,31 @@ int main()
             myDrawList->AddLine(ImVec2(a[0], a[1] - 10), ImVec2(a[0], a[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Left Verticle Line
             myDrawList->AddLine(ImVec2(b[0], b[1] - 10), ImVec2(b[0], b[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Right Verticle Line
             ImGui::End();
+
+            // render the GUI for the Free Roam Mode
+            ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
+            ImGui::SetNextWindowSize({ 570,160 }, ImGuiCond_Once); // ImGui Window width and window height
+            if (simMode == 1) {
+                ImGui::Begin("Free Roam GUI"); // creates the GUI and names it
+            }
+            else {
+                ImGui::Begin("Test Mode GUI"); // creates the GUI and names it
+                ImGui::Button("Save Data");
+                ImGui::SameLine();
+                ImGui::Button("Load Data");
+            }
+            ImGui::Checkbox("Lock Movement", &lock_motion);
+            ImGui::SameLine();
+            ImGui::Checkbox("Show Comms", &showComms);
+            ImGui::SliderFloat("Scale (mm)", &actualScale, 1, 10e5, "%1.0f", ImGuiSliderFlags_Logarithmic);
+            ImGui::SliderFloat("Time Speed", &timeScale, 0.1, 10);
+
         }
+        if (showComms) {
+            int window_width = ImGui::GetWindowWidth();
+            drawCommsGUI(shouldSendMessage, shouldInitiateIPConnection, teensy_ip, teensy_port, receive_ip, receive_port, window_width);
+        }
+        ImGui::End();
 
         // Render dear imgui into screen
         ImGui::Render();
@@ -918,6 +878,7 @@ int main()
     }
 
     printf("Client Began Joining \n");
+    eth_data->set_close_thread();
     thread_two.join(); // deletes the extra thread - Error: This doesn't exit properly when you hit the escape button
     printf("Client Finished Joining \n");
 
@@ -1099,4 +1060,48 @@ int drawPlanet(shader shaderProgram, unsigned int VAO, unsigned int texture, flo
     glDrawElements(GL_TRIANGLES, sphereIndexCount, GL_UNSIGNED_INT, (void*)0);
 
     //return 1; // a return value seems to prevent plotting - but why?
+}
+
+void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, int sendIP[4], int& send_port, int receiveIP[4], int& receive_port, int window_width) {
+    
+    if (ImGui::Button(" Initiate Receiver ")) {
+        initiateIP = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(" Send Test Message ")) {
+        shouldSendMessage = true;
+    }
+    std::cout << window_width << std::endl;
+    int item_width = std::floor((window_width-150) / 4);
+    if (item_width < 1) {
+        item_width = 1;
+    }
+
+    ImGui::Text("Teensy IpAddress");
+    ImGui::PushItemWidth(item_width);
+    ImGui::InputInt("S 1", &sendIP[0]);
+    ImGui::SameLine();
+    ImGui::PushItemWidth(item_width);
+    ImGui::InputInt("S 2", &sendIP[1]);
+    ImGui::SameLine();
+    ImGui::PushItemWidth(item_width);
+    ImGui::InputInt("S 3", &sendIP[2]);
+    ImGui::SameLine();
+    ImGui::PushItemWidth(item_width);
+    ImGui::InputInt("S 4", &sendIP[3]);
+    ImGui::InputInt("Teensy Port", &send_port);
+
+    ImGui::Text("Receiving IpAddress");
+    ImGui::PushItemWidth(item_width);
+    ImGui::InputInt("R 1", &receiveIP[0]);
+    ImGui::SameLine();
+    ImGui::PushItemWidth(item_width);
+    ImGui::InputInt("R 2", &receiveIP[1]);
+    ImGui::SameLine();
+    ImGui::PushItemWidth(item_width);
+    ImGui::InputInt("R 3", &receiveIP[2]);
+    ImGui::SameLine();
+    ImGui::PushItemWidth(item_width);
+    ImGui::InputInt("R 4", &receiveIP[3]);
+    ImGui::InputInt("Receiving Port", &receive_port);
 }

@@ -98,7 +98,7 @@ GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAn
 
 GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 72> recv_buffer) { 
     // we need to program this to decode a buffer (an array of uint8_t) and put it into the SPP format
-   // incoming buffer will be 72 bytes long (72 uint8_t). Data from buffer comes in Little Endian
+    // incoming buffer will be 72 bytes long (72 uint8_t). Data from buffer comes in Little Endian
     GAINS_TLM_PACKET data;
 
     int offset = 0;

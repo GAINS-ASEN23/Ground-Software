@@ -45,7 +45,8 @@ int refFrame = 1;
 // define utility functions
 unsigned int loadTexture(unsigned char* image_data, int width, int height, int nrChannels, unsigned int texture);
 int drawPlanet(shader shaderProgram, unsigned int VAO, unsigned int texture, float scale, float planetScale, float rotation, float positions[3], glm::mat4 model, glm::mat4 view, glm::mat4 proj, bool posFromObject, int sphereIndexCount);
-void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, int sendIP[4], int& send_port, int receiveIP[4], int& receive_port, int window_width);
+void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, bool& show_reset, bool& resetComms,  int sendIP[4], int& send_port, int receiveIP[4], int& receive_port, int window_width);
+int calcGUI_RefLen(ImDrawList* myDrawList, int simMode, int screen_width, int screen_height, float actualScale);
 
 int main()
 {
@@ -159,7 +160,7 @@ int main()
     textures[0] = loadTexture(gains_image_data, width, height, nrChannels, textures[0]);
 
     // orbital simulation mode preparations
-    if (simMode == 0) {
+    //if (simMode == 0) {
 
         // --- Create the Earth texture ---
         stbi_set_flip_vertically_on_load(false);
@@ -170,7 +171,7 @@ int main()
         unsigned char* moon_image_data = stbi_load("moon1024.bmp", &width, &height, &nrChannels, 0);
         textures[2] = loadTexture(moon_image_data, width, height, nrChannels, textures[2]);
 
-    }
+    //}
 
     // load the satellites prism into the 3rd VAO and VBO
     glBindVertexArray(VAO[3]);
@@ -185,14 +186,6 @@ int main()
     glm::mat4 trans1;
     glm::mat4 trans_earth;
     glm::mat4 trans_moon;
-
-    // initialize variables for communications
-    std::string teensy_ipaddress = "127.0.0.1";//"21.0.0.103";
-    int teensy_ip[4] = { 127,0,0,1 };
-    int teensy_port = 8888;
-    std::string receive_ipaddress = "0.0.0.0";// "21.0.0.2";
-    int receive_ip[4] = { 0,0,0,0 };
-    int receive_port = 8889;
 
     // Define variables for use in loop
     float rotation = 0.0f;
@@ -220,13 +213,26 @@ int main()
     int screen_width, screen_height;
 
     // Initialize variables for communications and multithreading
+    std::string teensy_ipaddress = "127.0.0.1";//"21.0.0.103";
+    int teensy_ip[4] = { 127,0,0,1 };
+    int teensy_port = 8888;
+    std::string receive_ipaddress = "0.0.0.0";// "21.0.0.2";
+    int receive_ip[4] = { 0,0,0,0 };
+    int receive_port = 8889;
     bool shouldSendMessage = false;
     bool shouldInitiateIPConnection = false;
     bool ethernet_data_ready_flag = false;
     bool showComms = true;
+    bool showCommsReset = false;
+    bool resetComms = false;
 
     // Initialize the local data struct in the stack because we just need it in the main function
-    GAINS_TLM_PACKET ethernet_packet;
+    boost::array<uint8_t, 720> receive_buffer;
+    int receive_size_array[10];
+    size_t receive_size;
+    float receive_time_float;
+    GAINS_TLM_PACKET receive_tlm_packet;
+    GAINS_STAR_PACKET receive_star_packet;
 
     // Initialize the thread safe class in the heap because we need to be able to access from anywhere (i.e. outside the main function's scope)
     ethernet_data* eth_data = new ethernet_data();
@@ -235,16 +241,20 @@ int main()
     // each row holds another set of data. Column 0 holds the time, Columns [1,2,3] hold the xyz postions, Columns [4,5,6] hold the xyz velocities
     std::vector<std::vector<double>>test_data;
     std::vector<std::vector<double>>received_data; 
+    int step_count = 0;
+    int received_data_size = 0;
     //std::vector<std::vector<double>>predicted_data;
     // 
     //Generate Example data
-    test_data.push_back({ 0, 0, 0, 0, 5, -3, 2 });
+    test_data.push_back({ 0, 0, 0, 0, 0.05, -0.03, 0.02 });
     for (int iterate = 1; iterate < 10; iterate++) {
         test_data.push_back({ 0, test_data.at(iterate - 1).at(1) + test_data.at(iterate - 1).at(4),
             test_data.at(iterate - 1).at(2) + test_data.at(iterate - 1).at(5),
             test_data.at(iterate - 1).at(3) + test_data.at(iterate - 1).at(6),
-            5, -3, 2 });
+            0.05, -0.03, 0.02 });
     }
+    save_data(test_data, "Test_data.csv");
+    //received_data = load_data("Test_data.csv");
 
     // Create the model,view, and projection transformation matrices
     glm::mat4 model = glm::mat4(1.0f);
@@ -412,10 +422,45 @@ int main()
         if (ethernet_data_ready_flag == true)
         {
             // Get the data
-            eth_data->get_data(ethernet_packet);
+            /*eth_data->get_data(receive_buffer, receive_size_array);
+            std::cout << "Receive Data Size = {";
+            for (int i = 0; i < 9; i++) {
+                std::cout << receive_size_array[i] << ", ";
+            }
+            std::cout << receive_size_array[9] << "} \n";*/
+
+            eth_data->get_data(receive_buffer, receive_size);
+            std::cout << "Received Data Size = " << receive_size << std::endl;
+
+            if (receive_size == 4) {
+                receive_time_float = 0;
+                memcpy(&receive_time_float, &receive_buffer[0], sizeof(float));
+                std::cout << "Received Time: '" << receive_time_float << "\n";
+            }
+            else {
+                if (receive_buffer[12] == 0) {
+                    // receive telemetry packet
+                    receive_tlm_packet = read_TLM_Packet(receive_buffer);
+                    std::cout << "Successfully read in the data packet. These are the contents of the TLM Packet: \n";
+                    print_GAINS_TLM_PACKET(receive_tlm_packet);
+                    headerData recvHdr = readHeader(receive_tlm_packet.FullHeader.SpacePacket.Hdr);
+                    received_data.push_back({receive_tlm_packet.FullHeader.Sec.Time,
+                        receive_tlm_packet.position_x,receive_tlm_packet.position_y ,receive_tlm_packet.position_z,
+                        receive_tlm_packet.velocity_x, receive_tlm_packet.velocity_y, receive_tlm_packet.velocity_z });
+                    received_data_size = received_data.size();
+                    std::cout << received_data.at(received_data_size - 1).at(0) << "," << received_data.at(received_data_size - 1).at(1) << "," << received_data.at(received_data_size - 1).at(2) << ","
+                        << received_data.at(received_data_size - 1).at(3) << "," << received_data.at(received_data_size - 1).at(4) << "," << received_data.at(received_data_size - 1).at(5) << "," << received_data.at(received_data_size - 1).at(6) << '\n';
+                }
+                else if (receive_buffer[12] == 1) {
+                    // receive star tracker packet
+                    receive_star_packet = read_STAR_Packet(receive_buffer);
+                    std::cout << "Successfully read in the data packet. These are the contents of the STAR packet: \n";
+                    print_GAINS_STAR_PACKET(receive_star_packet);
+                }
+            }
 
             // Print the new data (to test)
-            std::cout << "Main loop time: " << currentFrame << " Flag: " << ethernet_data_ready_flag << " X: " << ethernet_packet.position_x << " Y: " << ethernet_packet.position_y << " Z: " << ethernet_packet.position_z << std::endl;
+            //std::cout << "Main loop time: " << currentFrame << " Flag: " << ethernet_data_ready_flag << " X: " << ethernet_packet.position_x << " Y: " << ethernet_packet.position_y << " Z: " << ethernet_packet.position_z << std::endl;
 
             // Set the flag back to not ready because we have read the data and are waiting for new data
             eth_data->set_ready_flag(false);
@@ -423,23 +468,42 @@ int main()
 
         // --- Communication Send ---
         if (shouldSendMessage) {
-            float input_float = currentFrame;
-            std::cout << "Input float is '" << input_float << "'\nSending it to Sender Function...\n";
-            Send_Float(input_float, teensy_ipaddress, teensy_port);
-            printf("Sent float at time: %f \n", currentFrame);
+            //float input_float = currentFrame;
+            //std::cout << "Input float is '" << input_float << "'\nSending it to Sender Function...\n";
+            //Send_Float(input_float, teensy_ipaddress, teensy_port);
+            //printf("Sent float at time: %f \n", currentFrame);
 
-            GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(1.1, 2.2, 3.3, 4.4, 5.5, 6.6, currentFrame, 0, 1, 0, 0, 0, 0);
-            headerData sendHdr = readHeader(tlm_packet.FullHeader.SpacePacket.Hdr);
-            print_GAINS_TLM_PACKET(tlm_packet);
-            Send_TLM_Packet(tlm_packet, teensy_ipaddress, teensy_port);
-            printf("Sent data packet at time: %f \n", currentFrame);
+            //GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(1.1, 2.2, 3.3, 4.4, 5.5, 6.6, currentFrame, 0, 1, 0, 0, 0, 0);
+            //headerData sendHdr = readHeader(tlm_packet.FullHeader.SpacePacket.Hdr);
+            ////print_GAINS_TLM_PACKET(tlm_packet);
+            //Send_TLM_Packet(tlm_packet, teensy_ipaddress, teensy_port);
+            //printf("Sent tlm data packet at time: %f \n", currentFrame);
 
-            GAINS_STAR_PACKET star_packet = GAINS_STAR_PACKET_constructor(1.1, 2.2, 3.3, 4.4, currentFrame, 0, 1, 0, 0, 0, 0);
-            print_GAINS_STAR_PACKET(star_packet);
-            Send_STAR_Packet(star_packet, teensy_ipaddress, teensy_port);
-            printf("Sent data packet at time: %f \n", currentFrame);
+            //GAINS_STAR_PACKET star_packet = GAINS_STAR_PACKET_constructor(1.1, 2.2, 3.3, 4.4, currentFrame, 0, 1, 0, 0, 0, 0);
+            ////print_GAINS_STAR_PACKET(star_packet);
+            //Send_STAR_Packet(star_packet, teensy_ipaddress, teensy_port);
+            //printf("Sent star tracker packet at time: %f \n", currentFrame);
+
+            //for (int i = 0; i < test_data.size(); i++) {
+            if (step_count < test_data.size()) {
+                GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(test_data.at(step_count).at(1), test_data.at(step_count).at(2), test_data.at(step_count).at(3),
+                    test_data.at(step_count).at(4), test_data.at(step_count).at(5), test_data.at(step_count).at(6), currentFrame, 0, 1, 0, 0, 0, 0);
+                Send_TLM_Packet(tlm_packet, teensy_ipaddress, teensy_port);
+                printf("Sent tlm data packet at time: %f \n", currentFrame);
+                step_count++;
+            }
+            //}
 
             shouldSendMessage = false;
+        }
+
+        if (resetComms) {
+            /*eth_data->set_close_thread();
+            thread_two.join();
+            const auto start = std::chrono::high_resolution_clock::now();
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            const auto end = std::chrono::high_resolution_clock::now();
+            std::thread thread_two(ethernet_backend(), eth_data);*/
         }
 
         // draw objects for orbital simulation mode
@@ -686,17 +750,33 @@ int main()
             }
 
             // Calculate the current points to show on the 2D line
-            ins_rotation = fmod(step * (360.0f / 64.0f), 360.0f) + 270.0f;
-            int currentStep = step % (std::size(circleVert) / 3);
-            int line_temp_step;
-            for (int i = 0; i < 3 * lineCount; i++) {
-                line_temp_step = i + currentStep * 3;
-                if (line_temp_step < (std::size(circleVert))) {
-                    tempVert[i] = circleVert[line_temp_step];
+            if (simMode == 2) {
+                ins_rotation = fmod(step * (360.0f / 64.0f), 360.0f) + 270.0f;
+                int currentStep = step % (std::size(circleVert) / 3);
+                int line_temp_step;
+                for (int i = 0; i < 3 * lineCount; i++) {
+                    line_temp_step = i + currentStep * 3;
+                    if (line_temp_step < (std::size(circleVert))) {
+                        tempVert[i] = circleVert[line_temp_step];
+                    }
+                    else {
+                        line_temp_step = line_temp_step - std::size(circleVert);
+                        tempVert[i] = circleVert[line_temp_step];
+                    }
                 }
-                else {
-                    line_temp_step = line_temp_step - std::size(circleVert);
-                    tempVert[i] = circleVert[line_temp_step];
+            } else {
+                std::cout << "The size of received_data is: " << received_data_size << std::endl;
+                for (int i = 0; i < lineCount; i++) {
+                    if ((i < (received_data_size)) && (received_data_size > 0)) {
+                        tempVert[3*i] = received_data.at((received_data_size-1)-i).at(1);
+                        tempVert[3*i + 1] = received_data.at((received_data_size - 1) - i).at(2);
+                        tempVert[3*i + 2] = received_data.at((received_data_size - 1) - i).at(3);
+                    }
+                    else {
+                        tempVert[3*i] = 0;
+                        tempVert[3*i+1] = 0;
+                        tempVert[3*i+2] = 0;
+                    }
                 }
             }
 
@@ -715,7 +795,12 @@ int main()
             glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
             lineShaderProgram.setVec3("color", glm::vec3(0.8, 0.1, 0.1));
             trans1 = glm::mat4(1.0f);
-            trans1 = glm::scale(trans1, 250 *(1 / actualScale) * glm::vec3(1, 1, 1));
+            if (simMode == 2) {
+                trans1 = glm::scale(trans1, 250 * (1 / actualScale) * glm::vec3(1, 1, 1));
+            }
+            else {
+                trans1 = glm::scale(trans1, 1000 * (1 / actualScale) * glm::vec3(1, 1, 1));
+            }
             lineShaderProgram.setMat4("transform", trans1);
             glDrawArrays(GL_LINE_STRIP, 0, lineCount);
 
@@ -728,8 +813,13 @@ int main()
             glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
             boxShaderProgram.setVec3("color", glm::vec3(0.1, 0.1, 0.8));
             trans1 = glm::mat4(1.0f);
-            trans1 = glm::translate(trans1, 300 * (1 / actualScale) * glm::vec3(tempVert[0], tempVert[1], tempVert[2]));
-            trans1 = glm::rotate(trans1, glm::radians(ins_rotation), glm::vec3(0.0, 0.0, 1.0));
+            if (simMode == 2) {
+                trans1 = glm::rotate(trans1, glm::radians(ins_rotation), glm::vec3(0.0, 0.0, 1.0));
+                trans1 = glm::translate(trans1, 300 * (1 / actualScale) * glm::vec3(tempVert[0], tempVert[1], tempVert[2]));
+            }
+            else {
+                trans1 = glm::translate(trans1, 1000 * (1 / actualScale) * glm::vec3(tempVert[0], tempVert[1], tempVert[2]));
+            }
             trans1 = glm::scale(trans1, 100 * (1 / actualScale) * glm::vec3(1, 1, 1));
             boxShaderProgram.setMat4("transform", trans1);
             glActiveTexture(GL_TEXTURE0);
@@ -739,61 +829,53 @@ int main()
 
         }
 
+        // Invisible GUI overlay that displays the reference scale on the bottom right of the screen
+        glfwGetFramebufferSize(window, &screen_width, &screen_height);
+        ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once);
+        ImGui::SetNextWindowSize({ float(screen_width),float(screen_height) }, 0);
+        ImGui::Begin("Drawlist Window", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground); // creates the GUI and names it
+        ImDrawList* myDrawList = ImGui::GetWindowDrawList();
+        int ref_length = calcGUI_RefLen(myDrawList, simMode, screen_width, screen_height, actualScale);
+        ImVec2 a = ImVec2((screen_width - ref_length) - 100, screen_height - 50);
+        ImVec2 b = ImVec2(screen_width - 100, screen_height - 50);
         if (simMode == 0) {
-            // New window overlay to do: fix scaling due to camera offset and zoom (will we need to do the reference distance another way? or even take it out?)
-            //    Will need to adjust openGL coords (-1 to 1) of objects into ImGui pixel coords when tracking objects with icons
-            glfwGetFramebufferSize(window, &screen_width, &screen_height);
+            a = ImVec2((screen_width - ref_length) - 50, screen_height - 50);
+            b = ImVec2(screen_width - 50, screen_height - 50);
+        }
+        myDrawList->AddLine(a, b, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Center Line
+        myDrawList->AddLine(ImVec2(a[0], a[1] - 10), ImVec2(a[0], a[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Left Verticle Line
+        myDrawList->AddLine(ImVec2(b[0], b[1] - 10), ImVec2(b[0], b[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Right Verticle Line
+        ImGui::End();
+
+        if (simMode == 0) {
+            // render the GUI 
             ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
-            ImGui::SetNextWindowSize({ float(screen_width),float(screen_height) }, 0); // ImGui Window width and window height
-            ImGui::Begin("Drawlist Window", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground); // creates the GUI and names it
-            ImDrawList* myDrawList = ImGui::GetWindowDrawList();
-            int ref_length = 1e6;
-            if ((actualScale < 1e4)) {
-                ref_length = (screen_width / 2) * (1e3 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 75) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e3 km");
+            ImGui::SetNextWindowSize({ 570,240 }, ImGuiCond_Once); 
+            ImGui::Begin("Orbital Simulation GUI");
+
+            if (ImGui::Button("Sim Mode")) {
+                simMode = 0;
+                actualScale = 10000;
+                timeScale = 3600;
             }
-            else if ((actualScale < 1e5)) {
-                ref_length = (screen_width / 2) * (1e4 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e4 km");
+            ImGui::SameLine();
+            if (ImGui::Button("Free Roam Mode")) {
+                simMode = 1;
+                actualScale = 1000;
+                timeScale = 1;
             }
-            else if ((actualScale < 1e6)) {
-                ref_length = (screen_width / 2) * (1e5 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e5 km");
+            ImGui::SameLine();
+            if (ImGui::Button("Test Mode")) {
+                simMode = 2;
+                actualScale = 1000;
+                timeScale = 1;
             }
-            else if ((actualScale < 1e7)) {
-                ref_length = (screen_width / 2) * (1e6 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e6 km");
-            }
-            else if ((actualScale < 1e8)) {
-                ref_length = (screen_width / 2) * (1e7 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e7 km");
-            }
-            else if ((actualScale < 1e9)) {
-                ref_length = (screen_width / 2) * (1e8 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e8 km");
-            }
-            else {
-                ref_length = (screen_width / 2) * (1e9 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e9 km");
-            }
-            ImVec2 a = ImVec2((screen_width - ref_length) - 50, screen_height - 50);
-            ImVec2 b = ImVec2(screen_width - 50, screen_height - 50);
-            myDrawList->AddLine(a, b, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Center Line
-            myDrawList->AddLine(ImVec2(a[0], a[1] - 10), ImVec2(a[0], a[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Left Verticle Line
-            myDrawList->AddLine(ImVec2(b[0], b[1] - 10), ImVec2(b[0], b[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Right Verticle Line
-            ImGui::End();
-            
-            // render the --- GUI --- (Design the GUI here)
-            ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
-            ImGui::SetNextWindowSize({ 570,240 }, ImGuiCond_Once); // ImGui Window width and window height
-            ImGui::Begin("Orbital Simulation GUI"); // creates the GUI and names it
             ImGui::Checkbox("Lock Planet Movement", &lock_motion);
             ImGui::SameLine();
             ImGui::Checkbox("Show Comms", &showComms);
-            ImGui::SliderFloat("Actual Log Scale", &actualScale, 10e2, 10e9, "%1.0f", ImGuiSliderFlags_Logarithmic);
+            ImGui::SliderFloat("Scale (km)", &actualScale, 10e2, 10e9, "%1.0f", ImGuiSliderFlags_Logarithmic);
             ImGui::SliderFloat("Frames Per Second", &timeScale, 0.1, 10e4, "%1.0f", ImGuiSliderFlags_Logarithmic);
             ImGui::SliderFloat("Moon Rotation", &moon_rotation, 0, 360);
-
             ImGui::Text("Choose Reference Frame Center: ");
             ImGui::SameLine();
             if (ImGui::Button(" Earth ")) {
@@ -804,53 +886,35 @@ int main()
                 refFrame = 1;
             }
 
-        }
-        else if (simMode == 1 || simMode == 2) {
-            glfwGetFramebufferSize(window, &screen_width, &screen_height);
+        } else if (simMode == 1 || simMode == 2) {
+            // render the GUI
             ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
-            ImGui::SetNextWindowSize({ float(screen_width),float(screen_height) }, 0); // ImGui Window width and window height
-            ImGui::Begin("Drawlist Window", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground); // creates the GUI and names it
-            ImDrawList* myDrawList = ImGui::GetWindowDrawList();
-            int ref_length = 1000;
-            if ((actualScale < 1e1)) {
-                ref_length = (screen_width / 2) * (1e0 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 75) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1 mm");
-            }
-            else if ((actualScale < 1e2)) {
-                ref_length = (screen_width / 2) * (1e1 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1 cm");
-            }
-            else if ((actualScale < 1e3)) {
-                ref_length = (screen_width / 2) * (1e2 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "10 cm");
-            }
-            else if ((actualScale < 1e4)) {
-                ref_length = (screen_width / 2) * (1e3 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1 m");
-            }
-            else if ((actualScale < 1e5)) {
-                ref_length = (screen_width / 2) * (1e4 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "10 m");
-            }
-            else {
-                ref_length = (screen_width / 2) * (1e5 / actualScale);
-                myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "100 m");
-            }
-            ImVec2 a = ImVec2((screen_width - ref_length) - 100, screen_height - 50);
-            ImVec2 b = ImVec2(screen_width - 100, screen_height - 50);
-            myDrawList->AddLine(a, b, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Center Line
-            myDrawList->AddLine(ImVec2(a[0], a[1] - 10), ImVec2(a[0], a[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Left Verticle Line
-            myDrawList->AddLine(ImVec2(b[0], b[1] - 10), ImVec2(b[0], b[1] + 10), ImColor(1.0f, 1.0f, 1.0f, 1.0f), 1.0f); // Distance Scale Right Verticle Line
-            ImGui::End();
+            ImGui::SetNextWindowSize({ 570,160 }, ImGuiCond_Once);
 
-            // render the GUI for the Free Roam Mode
-            ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Once); // ImGui window origin starting from top left of screen
-            ImGui::SetNextWindowSize({ 570,160 }, ImGuiCond_Once); // ImGui Window width and window height
             if (simMode == 1) {
-                ImGui::Begin("Free Roam GUI"); // creates the GUI and names it
+                ImGui::Begin("Free Roam GUI");
             }
             else {
-                ImGui::Begin("Test Mode GUI"); // creates the GUI and names it
+                ImGui::Begin("Test Mode GUI");
+            }
+            if (ImGui::Button("Sim Mode")) {
+                simMode = 0;
+                actualScale = 10000;
+                timeScale = 3600;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Free Roam Mode")) {
+                simMode = 1;
+                actualScale = 1000;
+                timeScale = 1;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Test Mode")) {
+                simMode = 2;
+                actualScale = 1000;
+                timeScale = 1;
+            }
+            if (simMode == 2) {
                 ImGui::Button("Save Data");
                 ImGui::SameLine();
                 ImGui::Button("Load Data");
@@ -862,9 +926,10 @@ int main()
             ImGui::SliderFloat("Time Speed", &timeScale, 0.1, 10);
 
         }
+        //std::cout << "Window Width = " << ImGui::GetWindowWidth() << ", Window Height = " << ImGui::GetWindowHeight() << std::endl; // fixme
         if (showComms) {
             int window_width = ImGui::GetWindowWidth();
-            drawCommsGUI(shouldSendMessage, shouldInitiateIPConnection, teensy_ip, teensy_port, receive_ip, receive_port, window_width);
+            drawCommsGUI(shouldSendMessage, shouldInitiateIPConnection, showCommsReset, resetComms, teensy_ip, teensy_port, receive_ip, receive_port, window_width);
         }
         ImGui::End();
 
@@ -879,7 +944,7 @@ int main()
 
     printf("Client Began Joining \n");
     eth_data->set_close_thread();
-    thread_two.join(); // deletes the extra thread - Error: This doesn't exit properly when you hit the escape button
+    thread_two.join();
     printf("Client Finished Joining \n");
 
     // stop rendering ImGui
@@ -1062,8 +1127,8 @@ int drawPlanet(shader shaderProgram, unsigned int VAO, unsigned int texture, flo
     //return 1; // a return value seems to prevent plotting - but why?
 }
 
-void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, int sendIP[4], int& send_port, int receiveIP[4], int& receive_port, int window_width) {
-    
+void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, bool& show_reset, bool& resetComms, int sendIP[4], int& send_port, int receiveIP[4], int& receive_port, int window_width) {
+    // This function draws the comms portion of the GUI onto the current GUI. This enables user input for binding IPs and for sending and receiving
     if (ImGui::Button(" Initiate Receiver ")) {
         initiateIP = true;
     }
@@ -1071,7 +1136,13 @@ void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, int sendIP[4], int&
     if (ImGui::Button(" Send Test Message ")) {
         shouldSendMessage = true;
     }
-    std::cout << window_width << std::endl;
+    ImGui::SameLine();
+    ImGui::Checkbox(" Show Comms Reset ", &show_reset);
+    if (show_reset) {
+        if (ImGui::Button(" Reset Comms ")) {
+            resetComms = true;
+        }
+    }
     int item_width = std::floor((window_width-150) / 4);
     if (item_width < 1) {
         item_width = 1;
@@ -1104,4 +1175,67 @@ void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, int sendIP[4], int&
     ImGui::PushItemWidth(item_width);
     ImGui::InputInt("R 4", &receiveIP[3]);
     ImGui::InputInt("Receiving Port", &receive_port);
+}
+
+int calcGUI_RefLen(ImDrawList* myDrawList, int simMode, int screen_width, int screen_height, float actualScale) {
+    // This function calculates the reference length that is shown in the bottom right of the GUI
+    // It also draws the text for this reference line at the middle point of the reference line
+    int ref_length = 1e6;
+    if (simMode == 0) {
+        if ((actualScale < 1e4)) {
+            ref_length = (screen_width / 2) * (1e3 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 75) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e3 km");
+        }
+        else if ((actualScale < 1e5)) {
+            ref_length = (screen_width / 2) * (1e4 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e4 km");
+        }
+        else if ((actualScale < 1e6)) {
+            ref_length = (screen_width / 2) * (1e5 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e5 km");
+        }
+        else if ((actualScale < 1e7)) {
+            ref_length = (screen_width / 2) * (1e6 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e6 km");
+        }
+        else if ((actualScale < 1e8)) {
+            ref_length = (screen_width / 2) * (1e7 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e7 km");
+        }
+        else if ((actualScale < 1e9)) {
+            ref_length = (screen_width / 2) * (1e8 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e8 km");
+        }
+        else {
+            ref_length = (screen_width / 2) * (1e9 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2), screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1e9 km");
+        }
+    }
+    else {
+        if ((actualScale < 1e1)) {
+            ref_length = (screen_width / 2) * (1e0 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 75) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1 mm");
+        }
+        else if ((actualScale < 1e2)) {
+            ref_length = (screen_width / 2) * (1e1 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1 cm");
+        }
+        else if ((actualScale < 1e3)) {
+            ref_length = (screen_width / 2) * (1e2 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "10 cm");
+        }
+        else if ((actualScale < 1e4)) {
+            ref_length = (screen_width / 2) * (1e3 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "1 m");
+        }
+        else if ((actualScale < 1e5)) {
+            ref_length = (screen_width / 2) * (1e4 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "10 m");
+        }
+        else {
+            ref_length = (screen_width / 2) * (1e5 / actualScale);
+            myDrawList->AddText(ImVec2((screen_width - 70) - (ref_length / 2) - 50, screen_height - 80), ImColor(1.0f, 1.0f, 1.0f, 1.0f), "100 m");
+        }
+    }
+    return ref_length;
 }

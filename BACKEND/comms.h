@@ -89,6 +89,9 @@ struct Client {
     boost::asio::io_service io_service;
     udp::socket socket{ io_service };
     boost::array<uint8_t, 72> recv_buffer;
+    boost::array<uint8_t, 720> data_buffer;
+    int data_size_array[10];
+    size_t bytes_transferred;
     udp::endpoint remote_endpoint;
     boost::system::error_code receive_error;
     size_t packetReceiveLen;
@@ -122,51 +125,67 @@ struct Client {
     //    printf("close function done \n");
     //}
 
-    void handle_receive(const boost::system::error_code& error, size_t bytes_transferred) {
+    void handle_receive(const boost::system::error_code& error) {
         if (error) {
             std::cout << "Receive failed: " << error.message() << "\n";
             return;
         }
-        if (bytes_transferred == 4) {
-            // Receive time synchronization packets
-            float receive_float = 0;
-            memcpy(&receive_float, &recv_buffer[0], sizeof(float));
-            std::cout << "Received Time: '" << receive_float << "' (" << error.message() << ")\n";
-        }
-        else {
-            if (recv_buffer[12] == 0) {
-                // receive telemetry packet
-                GAINS_TLM_PACKET tlm_packet;
-                tlm_packet = read_TLM_Packet(recv_buffer);
-                std::cout << "Successfully read in the data packet. These are the contents of the TLM Packet: \n";
-                print_GAINS_TLM_PACKET(tlm_packet);
-                headerData recvHdr = readHeader(tlm_packet.FullHeader.SpacePacket.Hdr);
-            }
-            else if (recv_buffer[12] == 1) {
-                // receive star tracker packet
-                GAINS_STAR_PACKET star_packet;
-                star_packet = read_STAR_Packet(recv_buffer);
-                std::cout << "Successfully read in the data packet. These are the contents of the STAR packet: \n";
-                print_GAINS_STAR_PACKET(star_packet);
-            }
-        }
+        //if (bytes_transferred == 4) {
+        //    float receive_float = 0;
+        //    memcpy(&receive_float, &recv_buffer[0], sizeof(float));
+        //    std::cout << "Received Time: '" << receive_float << "' (" << error.message() << ")\n";
+        //}
+        //else {
+        //    if (recv_buffer[12] == 0) {
+        //        // receive telemetry packet
+        //        GAINS_TLM_PACKET tlm_packet;
+        //        tlm_packet = read_TLM_Packet(recv_buffer);
+        //        std::cout << "Successfully read in the data packet. These are the contents of the TLM Packet: \n";
+        //        print_GAINS_TLM_PACKET(tlm_packet);
+        //        headerData recvHdr = readHeader(tlm_packet.FullHeader.SpacePacket.Hdr);
+        //    }
+        //    else if (recv_buffer[12] == 1) {
+        //        // receive star tracker packet
+        //        GAINS_STAR_PACKET star_packet;
+        //        star_packet = read_STAR_Packet(recv_buffer);
+        //        std::cout << "Successfully read in the data packet. These are the contents of the STAR packet: \n";
+        //        print_GAINS_STAR_PACKET(star_packet);
+        //    }
+        //}
     }
 
     void wait() {
         boost::system::error_code error;
-        size_t bytes_transferred = socket.receive_from(boost::asio::buffer(recv_buffer), remote_endpoint, 0, error);
+        //bytes_transferred = socket.receive_from(boost::asio::buffer(recv_buffer), remote_endpoint, 0, error);
+        bytes_transferred = socket.receive_from(boost::asio::buffer(data_buffer), remote_endpoint, 0, error);
         if (error) {
             std::cout << "Error in receive_from: " << error.message() << "\n";
             return;
         }
+        /*for (int i = 0; i < 10; i++) {
+            if (data_size_array[i] == 0) {
+                data_size_array[i] = bytes_transferred;
+                for (int j = 0; j < bytes_transferred; j++) {
+                    data_buffer[72 * i + j] = recv_buffer[j];
+                }
+                break;
+            }
+        }*/
         printf("bytes received = %d \n", int(bytes_transferred));
-        handle_receive(error, bytes_transferred);
+        handle_receive(error);
     }
 
-    void Receiver(std::string receive_ipaddress, int receive_port)
+    //void Receiver(std::string receive_ipaddress, int receive_port, boost::array<uint8_t, 720> &data_buff, int* data_size)
+    void Receiver(std::string receive_ipaddress, int receive_port, boost::array<uint8_t, 720>& data_buff, size_t &data_size)
     {
+        /*for (int i = 0; i < 10; i++) {
+            data_size_array[i] = 0;
+        }*/
         wait();
         io_service.run();
+        data_buff = data_buffer; // this only seems to send the data from the last message received
+        //data_size = data_size_array;
+        data_size = bytes_transferred;
     }
 };
 // end comms setup
@@ -193,15 +212,24 @@ public:
         data_mut.unlock();
     }
 
-    void get_data(GAINS_TLM_PACKET& tlm_packet) {
+    //void get_data(boost::array<uint8_t, 720> &data, int* data_size_array) {
+    void get_data(boost::array<uint8_t, 720> &data, size_t data_size) {
         data_mut.lock();
-        tlm_packet = ethernet_data::ethernet_data_buf;
+        data = ethernet_data::ethernet_data_buf;
+        /*for (int i = 0; i < 10; i++) {
+            data_size_array[i] = ethernet_data::data_sizes[i];
+        }*/
+        data_size = ethernet_data::bytes_transferred;
         data_mut.unlock();
     }
 
-    void set_data(const GAINS_TLM_PACKET new_packet) {
+    void set_data(const boost::array<uint8_t, 720> data, size_t data_size){//int* data_size_array) {
         data_mut.lock();
-        ethernet_data::ethernet_data_buf = new_packet;
+        ethernet_data::ethernet_data_buf = data;
+        /*for (int i = 0; i < 10; i++) {
+            ethernet_data::data_sizes[i] = data_size_array[i];
+        }*/
+        ethernet_data::bytes_transferred = data_size;
         data_mut.unlock();
     }
 
@@ -248,7 +276,9 @@ public:
 private:
     std::mutex data_mut;
     bool data_ready{ false };
-    GAINS_TLM_PACKET ethernet_data_buf;
+    boost::array<uint8_t, 720> ethernet_data_buf {NULL};
+    size_t bytes_transferred {0};
+    int data_sizes[10] = { 0,0,0,0,0,0,0,0,0,0 };
     std::string ipaddress{ "0.0.0.0" };
     int port{8889};
     bool establish_ip{ false };
@@ -266,7 +296,7 @@ public:
     {
         // Init vars
         bool data_ready_flag = false;
-        GAINS_TLM_PACKET local_packet;
+        //GAINS_TLM_PACKET local_packet;
         Client client_thread;
         std::string ipaddress;
         int port;
@@ -274,6 +304,9 @@ public:
         int count = 0;
         bool initiated = false;
         bool shouldCloseThread = false;
+        boost::array<uint8_t, 720> data_buff;
+        int data_size[10];
+        size_t bytes_received = 0;
 
         // Dummy vars
         int i = 0;
@@ -294,23 +327,25 @@ public:
                     std::cout << "Initiated = '" << initiated << "\n";
                 }
                 if (initiated) {
-                    client_thread.Receiver(ipaddress, port);
+                    //client_thread.Receiver(ipaddress, port, data_buff, data_size);
+                    client_thread.Receiver(ipaddress, port, data_buff, bytes_received); // blocking function - should include a handler to stop this when closing window
 
                     // We got new data yay! (Dummy data)
-                    i++;
-                    j++;
-                    k++;
+                    //i++;
+                    //j++;
+                    //k++;
 
                     // Set the local packet with the new data
-                    local_packet.position_x = i;
+                    /*local_packet.position_x = i;
                     local_packet.position_y = j;
                     local_packet.position_z = k;
                     local_packet.velocity_x = i * i;
                     local_packet.velocity_y = j * j;
-                    local_packet.velocity_z = k * k;
+                    local_packet.velocity_z = k * k;*/
 
                     // Now set the data in our thread safe object class that is shared between threads by copying the local packet
-                    data_obj->set_data(local_packet);
+                    //data_obj->set_data(data_buff, data_size);
+                    data_obj->set_data(data_buff, bytes_received);
 
                     // Set the flag that the new data is ready
                     data_obj->set_ready_flag(true);

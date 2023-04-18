@@ -96,7 +96,7 @@ GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAn
     return starPacket;
 }
 
-GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 72> recv_buffer) { 
+GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 720> recv_buffer) { 
     // we need to program this to decode a buffer (an array of uint8_t) and put it into the SPP format
     // incoming buffer will be 72 bytes long (72 uint8_t). Data from buffer comes in Little Endian
     GAINS_TLM_PACKET data;
@@ -145,7 +145,7 @@ GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 72> recv_buffer) {
     return data;
 }
 
-GAINS_STAR_PACKET read_STAR_Packet(boost::array<uint8_t, 72> recv_buffer) { 
+GAINS_STAR_PACKET read_STAR_Packet(boost::array<uint8_t, 720> recv_buffer) { 
     // we need to program this to decode a buffer (an array of uint8_t) and put it into the SPP format
     // incoming buffer will be 72 bytes long (72 uint8_t). Data from buffer comes in Little Endian
     GAINS_STAR_PACKET data;
@@ -246,4 +246,49 @@ void print_GAINS_STAR_PACKET(GAINS_STAR_PACKET star_packet) {
 
     //std::cout << "Filler 1 = " << star_packet.filler1 << std::endl;
     //std::cout << "Filler 2 = " << star_packet.filler2 << std::endl;
+}
+void save_data(std::vector<std::vector<double>> data, std::string file_name) {
+    std::ofstream savefile;
+    savefile.open(file_name);
+    if (!savefile.is_open()) {
+        std::cerr << "error: file open failed " << file_name << ".\n";
+        return;
+    }
+    savefile << "Time, X Position, Y Position, Z Position, X Velocity, Y Velocity, Z Velocity\n";
+    for (int i = 0; i < data.size(); i++) {
+        for (int j = 0; j < (data.at(0).size()-1); j++) {
+            savefile << data.at(i).at(j) << ",";
+        }
+        savefile << data.at(i).at(data.at(0).size()-1);
+        savefile << "\n";
+    }
+    savefile.close();
+
+    std::cout << "saved data \n";
+}
+std::vector<std::vector<double>> load_data(std::string file_name) {
+    std::vector<std::vector<double>> output;
+    double time, xp, yp, zp, xv, yv, zv;
+    std::string header;
+    char comma;
+
+    std::fstream loadfile(file_name);
+    if (!loadfile.is_open()) {
+        std::cerr << "error: file open failed " << file_name << ".\n";
+        return output;
+    }
+    getline(loadfile, header, '\n');
+    for (;;) {          /* loop continually */
+        loadfile >> time >> comma >> xp >> comma >> yp >> comma >> zp >> comma >> xv >> comma >> yv >> comma >> zv;
+        if (loadfile.fail() || loadfile.eof())
+            break;
+        std::cout << time << "," << xp << "," << yp << "," << zp << "," << xv << "," << yv << "," << zv << '\n';
+        output.push_back({ time,xp,yp,zp,xv,yv,zv });
+        loadfile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+    loadfile.close();
+
+    std::cout << "loaded data \n";
+
+    return output;
 }

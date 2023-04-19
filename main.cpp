@@ -35,7 +35,7 @@ float fov = 45.0f;
 bool down;
 
 // set the mode that the GUI and orbital simulation is in
-// 0 = orbital simulation, 1 = free movement, 2 = cnc testing mode
+// 0 = orbital simulation, 1 = Display mode, 2 = testing mode
 int simMode = 1;
 
 // set the reference frame that the orbital simulation is in
@@ -442,8 +442,8 @@ int main()
                     // receive telemetry packet
                     receive_tlm_packet = read_TLM_Packet(receive_buffer);
                     std::cout << "Successfully read in the data packet. These are the contents of the TLM Packet: \n";
-                    print_GAINS_TLM_PACKET(receive_tlm_packet);
-                    headerData recvHdr = readHeader(receive_tlm_packet.FullHeader.SpacePacket.Hdr);
+                    //print_GAINS_TLM_PACKET(receive_tlm_packet);
+                    //headerData recvHdr = readHeader(receive_tlm_packet.FullHeader.SpacePacket.Hdr);
                     received_data.push_back({receive_tlm_packet.FullHeader.Sec.Time,
                         receive_tlm_packet.position_x,receive_tlm_packet.position_y ,receive_tlm_packet.position_z,
                         receive_tlm_packet.velocity_x, receive_tlm_packet.velocity_y, receive_tlm_packet.velocity_z });
@@ -455,7 +455,7 @@ int main()
                     // receive star tracker packet
                     receive_star_packet = read_STAR_Packet(receive_buffer);
                     std::cout << "Successfully read in the data packet. These are the contents of the STAR packet: \n";
-                    print_GAINS_STAR_PACKET(receive_star_packet);
+                    //print_GAINS_STAR_PACKET(receive_star_packet);
                 }
             }
 
@@ -468,10 +468,10 @@ int main()
 
         // --- Communication Send ---
         if (shouldSendMessage) {
-            //float input_float = currentFrame;
-            //std::cout << "Input float is '" << input_float << "'\nSending it to Sender Function...\n";
-            //Send_Float(input_float, teensy_ipaddress, teensy_port);
-            //printf("Sent float at time: %f \n", currentFrame);
+            float input_float = currentFrame;
+            std::cout << "Input float is '" << input_float << "'\nSending it to Sender Function...\n";
+            Send_Float(input_float, teensy_ipaddress, teensy_port);
+            printf("Sent float at time: %f \n", currentFrame);
 
             //GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(1.1, 2.2, 3.3, 4.4, 5.5, 6.6, currentFrame, 0, 1, 0, 0, 0, 0);
             //headerData sendHdr = readHeader(tlm_packet.FullHeader.SpacePacket.Hdr);
@@ -479,10 +479,10 @@ int main()
             //Send_TLM_Packet(tlm_packet, teensy_ipaddress, teensy_port);
             //printf("Sent tlm data packet at time: %f \n", currentFrame);
 
-            //GAINS_STAR_PACKET star_packet = GAINS_STAR_PACKET_constructor(1.1, 2.2, 3.3, 4.4, currentFrame, 0, 1, 0, 0, 0, 0);
-            ////print_GAINS_STAR_PACKET(star_packet);
-            //Send_STAR_Packet(star_packet, teensy_ipaddress, teensy_port);
-            //printf("Sent star tracker packet at time: %f \n", currentFrame);
+            GAINS_STAR_PACKET star_packet = GAINS_STAR_PACKET_constructor(1.1, 2.2, 3.3, 4.4, currentFrame, 0, 1, 0, 0, 0, 0);
+            //print_GAINS_STAR_PACKET(star_packet);
+            Send_STAR_Packet(star_packet, teensy_ipaddress, teensy_port);
+            printf("Sent star tracker packet at time: %f \n", currentFrame);
 
             //for (int i = 0; i < test_data.size(); i++) {
             if (step_count < test_data.size()) {
@@ -540,7 +540,7 @@ int main()
                 }
             }
 
-            // Calculate a vector of positional vectors to the Object - what is this object? No one knows O_O
+            // Calculate a vector of positional vectors to the satellite
             int currentStep = step % (std::size(PosVector));
             size_t obj_temp_step;
             for (int i = 0; i < lineCount; i = i + 1) {
@@ -600,53 +600,53 @@ int main()
             lineShaderProgram.setMat4("transform", trans_earth);
             glDrawArrays(GL_LINE_STRIP, 0, lineCount);
 
-
-            float earthScale = viewScale * (1 / actualScale) * 6371;
-            if (earthScale > 0.025) {
-                // --- Draw the Earth ---
-                planetShaderProgram.use();
-                modelLoc = glGetUniformLocation(planetShaderProgram.ID, "model");
-                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-                viewLoc = glGetUniformLocation(planetShaderProgram.ID, "view");
-                glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-                projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
-                glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-                trans_earth = glm::mat4(1.0f);
-                if (refFrame == 0) {
-                    trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(0.0f, 0.0f, 0.0f));
-                } else {
-                    trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(spiceTemp[27], spiceTemp[28], spiceTemp[29]));
-                }
-                trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(0.0f, 0.0f, 0.0f));
-                trans_earth = glm::rotate(trans_earth, glm::radians(earth_rotation), glm::vec3(0.0, 0.0, 1.0));
-                trans_earth = glm::scale(trans_earth, earthScale * glm::vec3(1, 1, 1));
-                planetShaderProgram.setMat4("transform", trans_earth);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, textures[1]);
-                glBindVertexArray(VAO[1]);
-                //glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
-            }
-            else {
-                // --- Draw an icon for the Earth ---
-                iconShaderProgram.use();
-                modelLoc = glGetUniformLocation(iconShaderProgram.ID, "model");
-                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-                viewLoc = glGetUniformLocation(iconShaderProgram.ID, "view");
-                glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-                projectionLoc = glGetUniformLocation(iconShaderProgram.ID, "projection");
-                glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-                iconShaderProgram.setVec3("color", glm::vec3(0.2, 0.2, 0.8));
-                trans_earth = glm::mat4(1.0f);
-                if (refFrame == 0) {
-                    trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(0.0f, 0.0f, 0.0f));
-                } else {
-                    trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(spiceTemp[27], spiceTemp[28], spiceTemp[29]));
-                }
-                trans_earth = glm::scale(trans_earth, 0.025f * glm::vec3(1, 1, 1));
-                iconShaderProgram.setMat4("transform", trans_earth);
-                glBindVertexArray(VAO[2]);
-                //glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
-            }
+            /*   ---   Draw The Earth (Not Currently In Use Since Using Moon Centered Frame)   ---   */
+            //float earthScale = viewScale * (1 / actualScale) * 6371;
+            //if (earthScale > 0.025) {
+            //    // --- Draw the Earth ---
+            //    planetShaderProgram.use();
+            //    modelLoc = glGetUniformLocation(planetShaderProgram.ID, "model");
+            //    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            //    viewLoc = glGetUniformLocation(planetShaderProgram.ID, "view");
+            //    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            //    projectionLoc = glGetUniformLocation(planetShaderProgram.ID, "projection");
+            //    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+            //    trans_earth = glm::mat4(1.0f);
+            //    if (refFrame == 0) {
+            //        trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(0.0f, 0.0f, 0.0f));
+            //    } else {
+            //        trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(spiceTemp[27], spiceTemp[28], spiceTemp[29]));
+            //    }
+            //    trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(0.0f, 0.0f, 0.0f));
+            //    trans_earth = glm::rotate(trans_earth, glm::radians(earth_rotation), glm::vec3(0.0, 0.0, 1.0));
+            //    trans_earth = glm::scale(trans_earth, earthScale * glm::vec3(1, 1, 1));
+            //    planetShaderProgram.setMat4("transform", trans_earth);
+            //    glActiveTexture(GL_TEXTURE0);
+            //    glBindTexture(GL_TEXTURE_2D, textures[1]);
+            //    glBindVertexArray(VAO[1]);
+            //    glDrawElements(GL_TRIANGLES, planet.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
+            //}
+            //else {
+            //    // --- Draw an icon for the Earth ---
+            //    iconShaderProgram.use();
+            //    modelLoc = glGetUniformLocation(iconShaderProgram.ID, "model");
+            //    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            //    viewLoc = glGetUniformLocation(iconShaderProgram.ID, "view");
+            //    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            //    projectionLoc = glGetUniformLocation(iconShaderProgram.ID, "projection");
+            //    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+            //    iconShaderProgram.setVec3("color", glm::vec3(0.2, 0.2, 0.8));
+            //    trans_earth = glm::mat4(1.0f);
+            //    if (refFrame == 0) {
+            //        trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(0.0f, 0.0f, 0.0f));
+            //    } else {
+            //        trans_earth = glm::translate(trans_earth, (1 / actualScale) * glm::vec3(spiceTemp[27], spiceTemp[28], spiceTemp[29]));
+            //    }
+            //    trans_earth = glm::scale(trans_earth, 0.025f * glm::vec3(1, 1, 1));
+            //    iconShaderProgram.setMat4("transform", trans_earth);
+            //    glBindVertexArray(VAO[2]);
+            //    glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
+            //}
 
 
             // --- Draw Spice Data ---
@@ -765,9 +765,9 @@ int main()
                     }
                 }
             } else {
-                std::cout << "The size of received_data is: " << received_data_size << std::endl;
+                //std::cout << "The size of received_data is: " << received_data_size << std::endl;
                 for (int i = 0; i < lineCount; i++) {
-                    if ((i < (received_data_size)) && (received_data_size > 0)) {
+                    if ((i < (received_data_size))) {
                         tempVert[3*i] = received_data.at((received_data_size-1)-i).at(1);
                         tempVert[3*i + 1] = received_data.at((received_data_size - 1) - i).at(2);
                         tempVert[3*i + 2] = received_data.at((received_data_size - 1) - i).at(3);
@@ -859,7 +859,7 @@ int main()
                 timeScale = 3600;
             }
             ImGui::SameLine();
-            if (ImGui::Button("Free Roam Mode")) {
+            if (ImGui::Button("Display Mode")) {
                 simMode = 1;
                 actualScale = 1000;
                 timeScale = 1;

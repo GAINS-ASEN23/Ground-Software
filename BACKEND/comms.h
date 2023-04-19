@@ -213,7 +213,7 @@ public:
     }
 
     //void get_data(boost::array<uint8_t, 720> &data, int* data_size_array) {
-    void get_data(boost::array<uint8_t, 720> &data, size_t data_size) {
+    void get_data(boost::array<uint8_t, 720> &data, size_t &data_size) {
         data_mut.lock();
         data = ethernet_data::ethernet_data_buf;
         /*for (int i = 0; i < 10; i++) {
@@ -301,17 +301,13 @@ public:
         std::string ipaddress;
         int port;
         bool connection_established = false;
+        bool data_ready;
         int count = 0;
         bool initiated = false;
         bool shouldCloseThread = false;
         boost::array<uint8_t, 720> data_buff;
         int data_size[10];
         size_t bytes_received = 0;
-
-        // Dummy vars
-        int i = 0;
-        int j = 0;
-        int k = 0;
 
         // Now loop infinitely in here unless some condition is met
         // Typically instead of true you would be looking for the CTRL-C keybind to safely exit...
@@ -327,28 +323,18 @@ public:
                     std::cout << "Initiated = '" << initiated << "\n";
                 }
                 if (initiated) {
-                    //client_thread.Receiver(ipaddress, port, data_buff, data_size);
-                    client_thread.Receiver(ipaddress, port, data_buff, bytes_received); // blocking function - should include a handler to stop this when closing window
+                    data_obj->get_ready_flag(data_ready);
+                    if (!data_ready) {
+                        //client_thread.Receiver(ipaddress, port, data_buff, data_size);
+                        client_thread.Receiver(ipaddress, port, data_buff, bytes_received); // blocking function - should include a handler to stop this when closing window
 
-                    // We got new data yay! (Dummy data)
-                    //i++;
-                    //j++;
-                    //k++;
+                        // Now set the data in our thread safe object class that is shared between threads by copying the local packet
+                        //data_obj->set_data(data_buff, data_size);
+                        data_obj->set_data(data_buff, bytes_received);
 
-                    // Set the local packet with the new data
-                    /*local_packet.position_x = i;
-                    local_packet.position_y = j;
-                    local_packet.position_z = k;
-                    local_packet.velocity_x = i * i;
-                    local_packet.velocity_y = j * j;
-                    local_packet.velocity_z = k * k;*/
-
-                    // Now set the data in our thread safe object class that is shared between threads by copying the local packet
-                    //data_obj->set_data(data_buff, data_size);
-                    data_obj->set_data(data_buff, bytes_received);
-
-                    // Set the flag that the new data is ready
-                    data_obj->set_ready_flag(true);
+                        // Set the flag that the new data is ready
+                        data_obj->set_ready_flag(true);
+                    }
                 }
                 else {
                     data_obj->set_connection_established(false);

@@ -11,6 +11,7 @@
 #include "..\Libraries\include\Eigen\Dense"
 #include "SPICEQuery.h"
 
+
 class CWSTATE
 {
 public:

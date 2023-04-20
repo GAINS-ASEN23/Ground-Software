@@ -42,7 +42,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // Define Constants
-# define M_PI           3.14159265358979323846  /* pi */ //This is normally defined in math.h, but I will define it here since this is the only variable I need
+#define M_PI           3.14159265358979323846  /* pi */ //This is normally defined in math.h, but I will define it here since this is the only variable I need
 
 //----- Shader Sources -----
 // Simple 2D shaders intended for drawing lines

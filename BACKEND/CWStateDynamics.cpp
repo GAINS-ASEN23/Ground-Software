@@ -23,11 +23,13 @@ std::vector<std::vector<double>> CWSTATE::run_CW_Sim_Moon(double totTime, double
 	std::vector<std::vector<double>> PosVector;
 
 	// Constants
-	double G = 6.67e-20;														// Gravitational Constant (km^3/kg-s^2)
+    double G = 6.67e-20;														// Gravitational Constant (km^3/(kg*s^2))
 	double M_Mn = 7.34767309e22;												// Mass of Moon (Kg)
-	double r_Moon = 1737447.78;													// Radius of the Moon [m]
+    double mu = 4.9048695e12;
+    double r_Moon = 1737447.78;													// Radius of the Moon [km]
 
-	double n = sqrt((G * M_Mn) / (pow(orbitAlt + r_Moon, 3)));					// Compute the Mean Motion for the CW Equations
+	double n = sqrt((mu) / (pow((orbitAlt + r_Moon), 3)));					// Compute the Mean Motion for the CW Equations
+    std::cout << " --- n = " << n << std::endl;
 
     // Simulation Time
     double epochTime = spiceObj.EpochTimeCall(date_0);
@@ -42,9 +44,9 @@ std::vector<std::vector<double>> CWSTATE::run_CW_Sim_Moon(double totTime, double
     while (epochTime < t_end) {
 
         // Compute forward in time
-        Xn = CWSTATE::F_matrix(dt, n) * Xn + CWSTATE::G_matrix(dt, n, t1, t2) * u_matrix;
+        Xn = CWSTATE::F_matrix(dt, n) * (Xn);// +CWSTATE::G_matrix(dt, n, t1, t2) * u_matrix;
 
-        printf("\n %g %g %g;", Xn.coeff(0), Xn.coeff(1), Xn.coeff(2));
+        //printf("\n %g %g %g;", Xn.coeff(0), Xn.coeff(1), Xn.coeff(2));
 
         // Add to Position Vector
         PosVector.push_back({ Xn.coeff(0), Xn.coeff(1), Xn.coeff(2) });

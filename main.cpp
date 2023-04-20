@@ -47,6 +47,7 @@ unsigned int loadTexture(unsigned char* image_data, int width, int height, int n
 int drawPlanet(shader shaderProgram, unsigned int VAO, unsigned int texture, float scale, float planetScale, float rotation, float positions[3], glm::mat4 model, glm::mat4 view, glm::mat4 proj, bool posFromObject, int sphereIndexCount);
 void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, bool& show_reset, bool& resetComms,  int sendIP[4], int& send_port, int receiveIP[4], int& receive_port, int window_width);
 int calcGUI_RefLen(ImDrawList* myDrawList, int simMode, int screen_width, int screen_height, float actualScale);
+Eigen::VectorXd calc_CW_Xn(float orbit_alt, float A0);
 
 int main()
 {
@@ -347,8 +348,6 @@ int main()
             spiceTemp[i + 2] = float(PosVectorEarth.at(i).at(2));
     }
 
-    // --- Spice data testing from backend ---
-    // 
     // Recording the timestamp at the start of the code
     auto beg = std::chrono::high_resolution_clock::now();
 
@@ -357,10 +356,17 @@ int main()
     // Integration Stuff
     double totTime = 60 * 60 * 3;
     double dt = 5;
+    //std::vector<std::vector<double>> PosVectorCW = nbodyObj.NBODYFUNC_MSC(totTime, dt, dateEx, V_scM, R_scM);
 
-    std::cout << "NBODYSIM Running..... \n";
-
-    std::vector<std::vector<double>> PosVector = nbodyObj.NBODYFUNC_MSC(totTime, dt, dateEx, V_scM, R_scM);
+    std::cout << "CW Sim Running..... \n";
+    CWSTATE CW_SIM;
+    Eigen::VectorXd Xn = calc_CW_Xn(50000, 50000);
+    // dt = 0.005;
+    std::vector<std::vector<double>> PosVector = CW_SIM.run_CW_Sim_Moon(totTime, 1, dateEx, 50000, Xn);
+    std::cout << "Created Data..." << std::endl;
+    for (size_t j = PosVector.size(); j-- > 0; ) {
+        printf("\n %g %g %g;", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
+    }
 
     // Taking a timestamp after the code is ran
     auto end = std::chrono::high_resolution_clock::now();
@@ -372,13 +378,9 @@ int main()
     std::cout << "Elapsed Time: " << duration.count();
 
     // --- end spice data testing ---
-    printf("\n \n Data points in orbit: %d \n \n",int(std::size(PosVector)));
+    printf("\n \n Data points in orbit: %d \n \n",int(PosVector.size()));
 
-    // *** start thread for ethernet stuff here. When we start the thread, input a void pointer into the new thread as an argument into the function that the thread calls
-    // We can type cast this pointer to the space packet protocol type to pull it out. The function inside the thread - the data inside we want to get out should be stored
-    // on the heap so it doesnt get deleted. Once we get the data we need then we can deallocate the space packet protocol data. We need a semaphore inside and outside 
-    // so that the gui doesn't read the data while the data is being written in the alternate thread.
-    // Do join after the while loop for c++ garbage collection
+    // start receiving thread here
     std::thread thread_two(ethernet_backend(), eth_data);
 
     // Render loop
@@ -421,14 +423,6 @@ int main()
         eth_data->get_ready_flag(ethernet_data_ready_flag);
         if (ethernet_data_ready_flag == true)
         {
-            // Get the data
-            /*eth_data->get_data(receive_buffer, receive_size_array);
-            std::cout << "Receive Data Size = {";
-            for (int i = 0; i < 9; i++) {
-                std::cout << receive_size_array[i] << ", ";
-            }
-            std::cout << receive_size_array[9] << "} \n";*/
-
             eth_data->get_data(receive_buffer, receive_size);
             std::cout << "Received Data Size = " << receive_size << std::endl;
 
@@ -459,9 +453,6 @@ int main()
                 }
             }
 
-            // Print the new data (to test)
-            //std::cout << "Main loop time: " << currentFrame << " Flag: " << ethernet_data_ready_flag << " X: " << ethernet_packet.position_x << " Y: " << ethernet_packet.position_y << " Z: " << ethernet_packet.position_z << std::endl;
-
             // Set the flag back to not ready because we have read the data and are waiting for new data
             eth_data->set_ready_flag(false);
         }
@@ -484,7 +475,6 @@ int main()
             Send_STAR_Packet(star_packet, teensy_ipaddress, teensy_port);
             printf("Sent star tracker packet at time: %f \n", currentFrame);
 
-            //for (int i = 0; i < test_data.size(); i++) {
             if (step_count < test_data.size()) {
                 GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(test_data.at(step_count).at(1), test_data.at(step_count).at(2), test_data.at(step_count).at(3),
                     test_data.at(step_count).at(4), test_data.at(step_count).at(5), test_data.at(step_count).at(6), currentFrame, 0, 1, 0, 0, 0, 0);
@@ -492,7 +482,6 @@ int main()
                 printf("Sent tlm data packet at time: %f \n", currentFrame);
                 step_count++;
             }
-            //}
 
             shouldSendMessage = false;
         }
@@ -521,18 +510,18 @@ int main()
             }
 
             // Calculate a vector of positional vectors from the moon to the earth
-            int currentStep2 = step % (std::size(PosVectorEarth));
+            int currentStep2 = step % (PosVectorEarth.size());
             size_t moon_temp_step;
             for (int i = 0; i < lineCount; i++) {
                 moon_temp_step = i + currentStep2;
-                if (moon_temp_step < (std::size(PosVectorEarth))) {
+                if (moon_temp_step < (PosVectorEarth.size())) {
                     spiceTemp[i * 3] = float(PosVectorEarth.at(moon_temp_step).at(0));
                     spiceTemp[i * 3 + 1] = float(PosVectorEarth.at(moon_temp_step).at(1));
                     spiceTemp[i * 3 + 2] = float(PosVectorEarth.at(moon_temp_step).at(2));
                 }
                 else {
-                    while (moon_temp_step >= (std::size(PosVectorEarth))) {
-                        moon_temp_step = moon_temp_step - std::size(PosVectorEarth);
+                    while (moon_temp_step >= (PosVectorEarth.size())) {
+                        moon_temp_step = moon_temp_step - PosVectorEarth.size();
                     }
                     spiceTemp[i * 3] = float(PosVectorEarth.at(moon_temp_step).at(0));
                     spiceTemp[i * 3 + 1] = float(PosVectorEarth.at(moon_temp_step).at(1));
@@ -541,18 +530,18 @@ int main()
             }
 
             // Calculate a vector of positional vectors to the satellite
-            int currentStep = step % (std::size(PosVector));
+            int currentStep = step % (PosVector.size());
             size_t obj_temp_step;
             for (int i = 0; i < lineCount; i = i + 1) {
                 obj_temp_step = (i*(10) + currentStep);
-                if (obj_temp_step < (std::size(PosVector))) {
+                if (obj_temp_step < (PosVector.size())) {
                     spiceTempData[i * 3] =     float(PosVector.at(obj_temp_step).at(0));
                     spiceTempData[i * 3 + 1] = float(PosVector.at(obj_temp_step).at(1));
                     spiceTempData[i * 3 + 2] = float(PosVector.at(obj_temp_step).at(2));
                 }
                 else {
-                    while (obj_temp_step >= (std::size(PosVector))) {
-                        obj_temp_step = obj_temp_step - std::size(PosVector);
+                    while (obj_temp_step >= (PosVector.size())) {
+                        obj_temp_step = obj_temp_step - PosVector.size();
                     }
                     spiceTempData[i * 3] =     float(PosVector.at(obj_temp_step).at(0));
                     spiceTempData[i * 3 + 1] = float(PosVector.at(obj_temp_step).at(1));
@@ -1238,4 +1227,35 @@ int calcGUI_RefLen(ImDrawList* myDrawList, int simMode, int screen_width, int sc
         }
     }
     return ref_length;
+}
+
+Eigen::VectorXd calc_CW_Xn(float orbit_alt, float A0) {
+    Eigen::VectorXd Xn(6);
+
+    float mu_moon = 4.9048695e12; // Gravitational parameter of the Moon[m ^ 3 s ^ -2]
+    float rad_moon = 1737447.78; // Radius of the Moon[m]
+    float orbit_rad = orbit_alt + rad_moon; // Orbital radius of the chief[m]
+    float n_mm = sqrt(mu_moon / (pow(orbit_rad,3))); // Mean motion of the Chief around the Moon[rad / s]
+
+    double alpha = (0.0 * M_PI) / 180.0;// Phase Angle Alpha of Circular Orbit
+    double x_0 = A0 * cos(alpha);// Initial X Position[m] Hill Frame
+    double y_0 = -2.0 * A0 * sin(alpha);// Initial Y Position[m] Hill Frame
+    double x_dot_0 = -x_0 * n_mm * sin(alpha);// Initial Orbital X velocity[m / s] Hill Frame
+    double y_dot_0 = -2.0 * n_mm * x_0 * cos(alpha);// Initial Orbital Y velocity[m / s] Hill Frame
+
+    Xn(0) = x_0;
+    Xn(1) = y_0;
+    Xn(2) = 0;
+    Xn(3) = x_dot_0;
+    Xn(4) = y_dot_0;
+    Xn(5) = 0;
+
+    std::cout << "Xn(0) = " << Xn(0) << std::endl;
+    std::cout << "Xn(1) = " << Xn(1) << std::endl;
+    std::cout << "Xn(2) = " << Xn(2) << std::endl;
+    std::cout << "Xn(3) = " << Xn(3) << std::endl;
+    std::cout << "Xn(4) = " << Xn(4) << std::endl;
+    std::cout << "Xn(5) = " << Xn(5) << std::endl;
+
+    return Xn;
 }

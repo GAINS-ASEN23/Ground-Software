@@ -32,16 +32,22 @@ int main()
     double r_Moon = 1737447.78/1000;										    // Radius of the Moon [m]
 
     // Example Specific
-    double orbitAlt = 50 + r_Moon;
+    double orbitAlt = 50;
     Eigen::VectorXd Xn(6);
-    Xn << 0, 0, 0, 0, 0, 0;
+    Xn(0) = 1787.4;
+    Xn(1) = 0;
+    Xn(2) = 0;
+    Xn(3) = 0;
+    Xn(4) = 1.6565;
+    Xn(5) = 0;
 
     std::vector<std::vector<double>> PosVector = cwstate.run_CW_Sim_Moon(totTime, dt, dateEx, orbitAlt, Xn);
 
-    for (size_t j = PosVector.size(); j-- > 0; ) {
+    for (size_t j = PosVector.size(); j--> 0; ) {
         printf("\n %g %g %g;", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
     }
 
+    std::cout << " We made it!" << std::endl;
     /* MAIN CODE END */
 
     // Taking a timestamp after the code is ran

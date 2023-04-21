@@ -31,10 +31,10 @@ void Send_String(std::string in, std::string send_ipaddress, int send_port) {
     boost::asio::io_service io_service;
     udp::socket socket(io_service);
     udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
-    socket.open(udp::v4()); 
+    socket.open(udp::v4());
 
     boost::system::error_code err;
-    auto sent = socket.send_to(boost::asio::buffer(in), remote_endpoint, 0, err); 
+    auto sent = socket.send_to(boost::asio::buffer(in), remote_endpoint, 0, err);
     socket.close();
     std::cout << "Sent Payload --- " << sent << "\n";
 }
@@ -48,25 +48,25 @@ void Send_Float(float in, std::string send_ipaddress, int send_port) {
     socket.open(udp::v4());
 
     boost::system::error_code err;
-    auto sent = socket.send_to(boost::asio::buffer(&in,4), remote_endpoint, 0, err); 
+    auto sent = socket.send_to(boost::asio::buffer(&in, 4), remote_endpoint, 0, err);
     socket.close();
     std::cout << "Sent Payload --- " << sent << "\n";
 }
 
 void Send_TLM_Packet(GAINS_TLM_PACKET tlm_packet, std::string send_ipaddress, int send_port) {
     // this function sends a GAINS_TLM_PACEKT udp message to a specific ipaddress and port
-    std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
+    //std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
     boost::asio::io_service io_service;
     udp::socket socket(io_service);
     udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
-    socket.open(udp::v4()); 
+    socket.open(udp::v4());
 
     boost::system::error_code err;
     size_t packet_size = sizeof(tlm_packet);
-    std::cout << "Sending TLM Data Packet of size: " << packet_size << "\n";
+    //std::cout << "Sending TLM Data Packet of size: " << packet_size << "\n";
     auto sent = socket.send_to(boost::asio::buffer(&tlm_packet, packet_size), remote_endpoint, 0, err);
     socket.close();
-    std::cout << "Sent Payload --- " << sent << "\n";
+    //std::cout << "Sent Payload --- " << sent << "\n";
 }
 
 void Send_STAR_Packet(GAINS_STAR_PACKET star_packet, std::string send_ipaddress, int send_port) {
@@ -79,7 +79,7 @@ void Send_STAR_Packet(GAINS_STAR_PACKET star_packet, std::string send_ipaddress,
 
     boost::system::error_code err;
     size_t packet_size = sizeof(star_packet);
-    auto sent = socket.send_to(boost::asio::buffer(&star_packet, packet_size), remote_endpoint, 0, err); 
+    auto sent = socket.send_to(boost::asio::buffer(&star_packet, packet_size), remote_endpoint, 0, err);
     socket.close();
     std::cout << "Sent Payload --- " << sent << "\n";
 }
@@ -171,12 +171,12 @@ struct Client {
                 break;
             }
         }*/
-        printf("bytes received = %d \n", int(bytes_transferred));
+        //printf("bytes received = %d \n", int(bytes_transferred));
         handle_receive(error);
     }
 
     //void Receiver(std::string receive_ipaddress, int receive_port, boost::array<uint8_t, 720> &data_buff, int* data_size)
-    void Receiver(std::string receive_ipaddress, int receive_port, boost::array<uint8_t, 720>& data_buff, size_t &data_size)
+    void Receiver(std::string receive_ipaddress, int receive_port, boost::array<uint8_t, 720>& data_buff, size_t& data_size)
     {
         /*for (int i = 0; i < 10; i++) {
             data_size_array[i] = 0;
@@ -213,7 +213,7 @@ public:
     }
 
     //void get_data(boost::array<uint8_t, 720> &data, int* data_size_array) {
-    void get_data(boost::array<uint8_t, 720> &data, size_t &data_size) {
+    void get_data(boost::array<uint8_t, 720>& data, size_t& data_size) {
         data_mut.lock();
         data = ethernet_data::ethernet_data_buf;
         /*for (int i = 0; i < 10; i++) {
@@ -223,7 +223,7 @@ public:
         data_mut.unlock();
     }
 
-    void set_data(const boost::array<uint8_t, 720> data, size_t data_size){//int* data_size_array) {
+    void set_data(const boost::array<uint8_t, 720> data, size_t data_size) {//int* data_size_array) {
         data_mut.lock();
         ethernet_data::ethernet_data_buf = data;
         /*for (int i = 0; i < 10; i++) {
@@ -276,11 +276,11 @@ public:
 private:
     std::mutex data_mut;
     bool data_ready{ false };
-    boost::array<uint8_t, 720> ethernet_data_buf {NULL};
-    size_t bytes_transferred {0};
+    boost::array<uint8_t, 720> ethernet_data_buf{ NULL };
+    size_t bytes_transferred{ 0 };
     int data_sizes[10] = { 0,0,0,0,0,0,0,0,0,0 };
     std::string ipaddress{ "0.0.0.0" };
-    int port{8889};
+    int port{ 8889 };
     bool establish_ip{ false };
     bool close_thread{ false };
 

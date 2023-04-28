@@ -5,8 +5,8 @@
 * Purpose: This is the header file to contain vertex data for objects used in the simulation
 */
 
-// setup satellite vertices
-float satelliteVertices[] = {
+// setup satellite vertices - This creates a cube shape that we can put textures on
+float satelliteVertices[] = { // 36 points used
     -0.5f, -0.5f, -0.15f,  0.0f, 0.0f,
      0.5f, -0.5f, -0.15f,  1.0f, 0.0f,
      0.5f,  0.5f, -0.15f,  1.0f, 1.0f,
@@ -50,9 +50,9 @@ float satelliteVertices[] = {
     -0.5f,  0.5f, -0.15f,  0.0f, 1.0f
 };
 
-// setup line vertices
-float lineVert[] = {
-    -1.0f, -1.0f, 0.0f, // 11
+// setup line vertices - This creates an outline of a square for use in example trajectories
+float lineVert[] = { // 40 points used
+    -1.0f, -1.0f, 0.0f,
     -0.8f, -1.0f, 0.0f,
     -0.6f, -1.0f, 0.0f,
     -0.4f, -1.0f, 0.0f,
@@ -64,7 +64,7 @@ float lineVert[] = {
     0.8f, -1.0f, 0.0f,
     1.0f, -1.0f, 0.0f,
 
-    1.0f, -0.8f, 0.0f, // 10
+    1.0f, -0.8f, 0.0f,
     1.0f, -0.6f, 0.0f,
     1.0f, -0.4f, 0.0f,
     1.0f, -0.2f, 0.0f,
@@ -75,7 +75,7 @@ float lineVert[] = {
     1.0f, 0.8f, 0.0f,
     1.0f, 1.0f, 0.0f,
 
-    0.8f, 1.0f, 0.0f, // 10
+    0.8f, 1.0f, 0.0f,
     0.6f, 1.0f, 0.0f,
     0.4f, 1.0f, 0.0f,
     0.2f, 1.0f, 0.0f,
@@ -86,7 +86,7 @@ float lineVert[] = {
     -0.8f, 1.0f, 0.0f,
     -1.0f, 1.0f, 0.0f,
 
-    -1.0f, 0.8f, 0.0f, // 9
+    -1.0f, 0.8f, 0.0f,
     -1.0f, 0.6f, 0.0f,
     -1.0f, 0.4f, 0.0f,
     -1.0f, 0.2f, 0.0f,
@@ -97,9 +97,9 @@ float lineVert[] = {
     -1.0f, -0.8f, 0.0f,
 };
 
-// setup circle vertices
-float circleVert[] = {
-    1.0f, 0.0f, 0.0f, // 16
+// setup circle vertices - Creates outline of a circle for use in example trajectories
+float circleVert[] = { // 64 points used
+    1.0f, 0.0f, 0.0f,
     0.995f, 0.098f, 0.0f,
     0.980f, 0.195f, 0.0f,
     0.957f, 0.290f, 0.0f,
@@ -116,7 +116,7 @@ float circleVert[] = {
     0.195f, 0.980f, 0.0f,
     0.098f, 0.995f, 0.0f,
 
-    0.0f, 1.0f, 0.0f, // 16
+    0.0f, 1.0f, 0.0f,
     -0.098f, 0.995f, 0.0f,
     -0.195f, 0.980f, 0.0f,
     -0.290f, 0.957f, 0.0f,
@@ -133,7 +133,7 @@ float circleVert[] = {
     -0.980f, 0.195f, 0.0f,
     -0.995f, 0.098f, 0.0f,
 
-    -1.0f, 0.0f, 0.0f, // 16
+    -1.0f, 0.0f, 0.0f,
     -0.995f, -0.098f, 0.0f,
     -0.980f, -0.195f, 0.0f,
     -0.957f, -0.290f, 0.0f,
@@ -150,7 +150,7 @@ float circleVert[] = {
     -0.195f, -0.980f, 0.0f,
     -0.098f, -0.995f, 0.0f,
 
-    0.0f, -1.0f, 0.0f, // 16
+    0.0f, -1.0f, 0.0f, 
     0.098f, -0.995f, 0.0f,
     0.195f, -0.980f, 0.0f,
     0.290f, -0.957f, 0.0f,

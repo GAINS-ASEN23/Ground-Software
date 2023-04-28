@@ -19,6 +19,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+// Class for easy creation and use of shader programs
 class shader
 {
 public:

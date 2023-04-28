@@ -91,7 +91,7 @@ typedef struct
 typedef struct
 {
     CCSDS_SpacePacket_t  SpacePacket;   /**< \brief Standard Header on all packets  */
-    CCSDS_CmdSecHdr_t    Sec;
+    CCSDS_CmdSecHdr_t    Sec;          /**< \brief Secondary Header on all packets  */
 } CCSDS_CommandPacket_t;
 
 /*----- Generic combined telemetry header. -----*/
@@ -99,7 +99,7 @@ typedef struct
 typedef struct
 {
     CCSDS_SpacePacket_t  SpacePacket; /**< \brief Standard Header on all packets */
-    CCSDS_TlmSecHdr_t    Sec;
+    CCSDS_TlmSecHdr_t    Sec;        /**< \brief Secondary Header on all packets  */
 } CCSDS_TelemetryPacket_t;
 
 /*----- Combined telemetry packet -----*/
@@ -122,11 +122,14 @@ struct GAINS_STAR_PACKET { /* Length will be 72 bytes due to data alignment */
     double      betaAngle2{ 0 };
     double      betaAngle3{ 0 };
     double      betaAngle4{ 0 };
+
+    // Extra free space in packet - Used to keep the size consistent with telemetry packet
     double      filler1 = 0;
     double      filler2 = 0;
 
 };
 
+// Uncompacted Struct to hold all data that is compacted into a primary CCSDS header
 struct headerData {
     int appId = 0;
     bool secondHeader = 0;
@@ -137,21 +140,26 @@ struct headerData {
     int length = 0;
 };
 
-
+// Size of Packet
 #define CFE_SB_TLM_HDR_SIZE sizeof(CCSDS_TelemetryPacket_t)
 
+// Functions to compact data into primary header and read data out of compacted header
 CCSDS_PriHdr_t writeHeader(int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag);
 headerData readHeader(CCSDS_PriHdr_t hdr);
 
+// Functions to construct packets
 GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position_y, double position_z, double velocity_x, double velocity_y, double velocity_z, float time, int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag);
 GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAngle2, double betaAngle3, double betaAngle4, float time, int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag);
 
-GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 720> recv_buffer);
-GAINS_STAR_PACKET read_STAR_Packet(boost::array<uint8_t, 720> recv_buffer);
+// Functions to read data out of buffer and put it into a packet
+GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 72> recv_buffer);
+GAINS_STAR_PACKET read_STAR_Packet(boost::array<uint8_t, 72> recv_buffer);
 
+// Functions to print data out of packets
 void print_GAINS_TLM_PACKET(GAINS_TLM_PACKET tlm_packet);
 void print_GAINS_STAR_PACKET(GAINS_STAR_PACKET tlm_packet);
 
+// Functions to load and save data from double vectors
 void save_data(std::vector<std::vector<double>> data, std::string file_name);
 std::vector<std::vector<double>> load_data(std::string file_name);
 

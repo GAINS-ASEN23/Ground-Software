@@ -12,90 +12,93 @@
 #include <thread> 
 #include <mutex>
 
+// Communications includes
 #include "ccsds.h"
-
 #include "boost/array.hpp"
 #include "boost/asio.hpp"
 #include <ctime>
-//#include <boost/bind.hpp>
 #include <boost/bind/bind.hpp>
 
+// Configure Namespace for boost communications
 using boost::asio::ip::udp;
 using boost::asio::ip::address;
 using boost::asio::buffer_cast;
 using boost::asio::const_buffer;
 
+// Send a string to the given ipaddress and port
 void Send_String(std::string in, std::string send_ipaddress, int send_port) {
-    // this function sends a string udp message to a specific ipaddress and port
-    std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
+
+    // Configure Socket
     boost::asio::io_service io_service;
     udp::socket socket(io_service);
     udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
-    socket.open(udp::v4());
 
+    // Send message on Socket
+    socket.open(udp::v4());
     boost::system::error_code err;
     auto sent = socket.send_to(boost::asio::buffer(in), remote_endpoint, 0, err);
     socket.close();
-    std::cout << "Sent Payload --- " << sent << "\n";
 }
 
+// Send a float to the given ipaddress and port - Often used for sending time floats
 void Send_Float(float in, std::string send_ipaddress, int send_port) {
-    // this function sends a float udp message to a specific ipaddress and port
-    std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
+
+    // Configure Socket
     boost::asio::io_service io_service;
     udp::socket socket(io_service);
     udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
-    socket.open(udp::v4());
 
+    // Send message on Socket
+    socket.open(udp::v4());
     boost::system::error_code err;
     auto sent = socket.send_to(boost::asio::buffer(&in, 4), remote_endpoint, 0, err);
     socket.close();
-    std::cout << "Sent Payload --- " << sent << "\n";
 }
 
+// Send a Telemetry Packet on the given ipaddress and port
 void Send_TLM_Packet(GAINS_TLM_PACKET tlm_packet, std::string send_ipaddress, int send_port) {
-    // this function sends a GAINS_TLM_PACEKT udp message to a specific ipaddress and port
-    //std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
+
+    // Configure Socket
     boost::asio::io_service io_service;
     udp::socket socket(io_service);
     udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
-    socket.open(udp::v4());
 
+    // Send message on Socket
+    socket.open(udp::v4());
     boost::system::error_code err;
     size_t packet_size = sizeof(tlm_packet);
-    //std::cout << "Sending TLM Data Packet of size: " << packet_size << "\n";
     auto sent = socket.send_to(boost::asio::buffer(&tlm_packet, packet_size), remote_endpoint, 0, err);
     socket.close();
-    //std::cout << "Sent Payload --- " << sent << "\n";
 }
 
+// Send a Star Tracker Packet on the given ipaddress and port
 void Send_STAR_Packet(GAINS_STAR_PACKET star_packet, std::string send_ipaddress, int send_port) {
-    // this function sends a GAINS_STAR_PACKET udp message to a specific ipaddress and port
-    std::cout << "Sending on ipaddress: " << send_ipaddress << ", with port: " << send_port << "\n";
+
+    // Configure Socket
     boost::asio::io_service io_service;
     udp::socket socket(io_service);
     udp::endpoint remote_endpoint = udp::endpoint(address::from_string(send_ipaddress), send_port);
     socket.open(udp::v4());
 
+    // Send message on Socket
     boost::system::error_code err;
     size_t packet_size = sizeof(star_packet);
     auto sent = socket.send_to(boost::asio::buffer(&star_packet, packet_size), remote_endpoint, 0, err);
     socket.close();
-    std::cout << "Sent Payload --- " << sent << "\n";
 }
 
+// Client side communications struct for receiving messages
 struct Client {
 
+    // Common Variables used throughout struct
     boost::asio::io_service io_service;
     udp::socket socket{ io_service };
-    boost::array<uint8_t, 72> recv_buffer;
-    boost::array<uint8_t, 720> data_buffer;
-    int data_size_array[10];
-    size_t bytes_transferred;
+    boost::array<uint8_t, 72> data_buffer;
+    size_t bytes_transferred{0};
     udp::endpoint remote_endpoint;
-    boost::system::error_code receive_error;
-    size_t packetReceiveLen;
 
+    // Initilization of receiving communications to given ipaddress and port - The receiving Ipaddress and Port can only be bound once (usually this is fine
+    // since it normally receives on port 0.0.0.0)
     bool init(std::string receive_ipaddress, int receive_port) {
         std::cout << "Receiving on ipaddress: " << receive_ipaddress << ", with port: " << receive_port << "\n";
         Client::remote_endpoint = udp::endpoint(address::from_string(receive_ipaddress), receive_port);
@@ -107,91 +110,38 @@ struct Client {
             return false;
         }
         return true;
-
     }
 
-    //void close()
-    //{
-    //    printf("Close function initiated \n");
-    //    io_service.post([this]() {
-    //        socket.close();
-    //        printf("socket.close done \n");
-    //        // As long as outstanding completion handlers do not
-    //        // invoke operations on socket_, then socket_ can be 
-    //        // destroyed.
-    //        //socket.release();
-    //        //printf("socket.release done \n");
-    //        });
-    //    printf("close function done \n");
-    //}
-
+    // Print data packet receive errors
     void handle_receive(const boost::system::error_code& error) {
         if (error) {
             std::cout << "Receive failed: " << error.message() << "\n";
             return;
         }
-        //if (bytes_transferred == 4) {
-        //    float receive_float = 0;
-        //    memcpy(&receive_float, &recv_buffer[0], sizeof(float));
-        //    std::cout << "Received Time: '" << receive_float << "' (" << error.message() << ")\n";
-        //}
-        //else {
-        //    if (recv_buffer[12] == 0) {
-        //        // receive telemetry packet
-        //        GAINS_TLM_PACKET tlm_packet;
-        //        tlm_packet = read_TLM_Packet(recv_buffer);
-        //        std::cout << "Successfully read in the data packet. These are the contents of the TLM Packet: \n";
-        //        print_GAINS_TLM_PACKET(tlm_packet);
-        //        headerData recvHdr = readHeader(tlm_packet.FullHeader.SpacePacket.Hdr);
-        //    }
-        //    else if (recv_buffer[12] == 1) {
-        //        // receive star tracker packet
-        //        GAINS_STAR_PACKET star_packet;
-        //        star_packet = read_STAR_Packet(recv_buffer);
-        //        std::cout << "Successfully read in the data packet. These are the contents of the STAR packet: \n";
-        //        print_GAINS_STAR_PACKET(star_packet);
-        //    }
-        //}
     }
 
+    // Wait to receive a data packet and send errors to handler
     void wait() {
         boost::system::error_code error;
-        //bytes_transferred = socket.receive_from(boost::asio::buffer(recv_buffer), remote_endpoint, 0, error);
         bytes_transferred = socket.receive_from(boost::asio::buffer(data_buffer), remote_endpoint, 0, error);
         if (error) {
             std::cout << "Error in receive_from: " << error.message() << "\n";
             return;
         }
-        /*for (int i = 0; i < 10; i++) {
-            if (data_size_array[i] == 0) {
-                data_size_array[i] = bytes_transferred;
-                for (int j = 0; j < bytes_transferred; j++) {
-                    data_buffer[72 * i + j] = recv_buffer[j];
-                }
-                break;
-            }
-        }*/
-        //printf("bytes received = %d \n", int(bytes_transferred));
         handle_receive(error);
     }
 
-    //void Receiver(std::string receive_ipaddress, int receive_port, boost::array<uint8_t, 720> &data_buff, int* data_size)
-    void Receiver(std::string receive_ipaddress, int receive_port, boost::array<uint8_t, 720>& data_buff, size_t& data_size)
+    // Main receive function that delegates tasks and returns the received data
+    void Receiver(std::string receive_ipaddress, int receive_port, boost::array<uint8_t, 72>& data_buff, size_t& data_size)
     {
-        /*for (int i = 0; i < 10; i++) {
-            data_size_array[i] = 0;
-        }*/
         wait();
         io_service.run();
-        data_buff = data_buffer; // this only seems to send the data from the last message received
-        //data_size = data_size_array;
+        data_buff = data_buffer;
         data_size = bytes_transferred;
     }
 };
-// end comms setup
 
-// Begin multi threading setup
-
+// This class controls the mutex locks to ensure multi thread safe ethernet operations
 class ethernet_data {
 public:
     // Default Constructor (Don't use)
@@ -200,39 +150,37 @@ public:
     // Default Destructor
     ~ethernet_data() {};
 
+    // Get flag for if received data is loaded
     void get_ready_flag(bool& data_ready_flag) {
         data_mut.lock();
         data_ready_flag = ethernet_data::data_ready;
         data_mut.unlock();
     }
 
+    // Set flag for if received data is loaded
     void set_ready_flag(const bool set_data_ready) {
         data_mut.lock();
         ethernet_data::data_ready = set_data_ready;
         data_mut.unlock();
     }
 
-    //void get_data(boost::array<uint8_t, 720> &data, int* data_size_array) {
-    void get_data(boost::array<uint8_t, 720>& data, size_t& data_size) {
+    // Get the data buffer and size of loaded data
+    void get_data(boost::array<uint8_t, 72>& data, size_t& data_size) {
         data_mut.lock();
         data = ethernet_data::ethernet_data_buf;
-        /*for (int i = 0; i < 10; i++) {
-            data_size_array[i] = ethernet_data::data_sizes[i];
-        }*/
         data_size = ethernet_data::bytes_transferred;
         data_mut.unlock();
     }
 
-    void set_data(const boost::array<uint8_t, 720> data, size_t data_size) {//int* data_size_array) {
+    // Set the loaded data
+    void set_data(const boost::array<uint8_t, 72> data, size_t data_size) {
         data_mut.lock();
         ethernet_data::ethernet_data_buf = data;
-        /*for (int i = 0; i < 10; i++) {
-            ethernet_data::data_sizes[i] = data_size_array[i];
-        }*/
         ethernet_data::bytes_transferred = data_size;
         data_mut.unlock();
     }
 
+    // Get the ipaddress and port
     void get_ip(std::string& out_ipaddress, int& out_port) {
         data_mut.lock();
         out_ipaddress = ethernet_data::ipaddress;
@@ -240,6 +188,7 @@ public:
         data_mut.unlock();
     }
 
+    // Set the ipaddress and port used on the thread
     void set_ip(std::string new_ipaddress, int new_port) {
         data_mut.lock();
         ethernet_data::ipaddress = new_ipaddress;
@@ -248,37 +197,39 @@ public:
         data_mut.unlock();
     }
 
+    // Get flag for if the receiver connection was successfully established
     void get_connection_established(bool& connection_established) {
         data_mut.lock();
         connection_established = ethernet_data::establish_ip;
         data_mut.unlock();
     }
 
+    // Set flag for if the receiver connection was successfully established
     void set_connection_established(bool connection_established) {
         data_mut.lock();
         ethernet_data::establish_ip = connection_established;
         data_mut.unlock();
     }
 
-    void set_close_thread() {
-        data_mut.lock();
-        ethernet_data::close_thread = true;
-        data_mut.unlock();
-    }
-
+    // Get flag for if the additional thread should close
     void get_shouldCloseThread(bool& shouldCloseThread) {
         data_mut.lock();
         shouldCloseThread = ethernet_data::close_thread;
         data_mut.unlock();
     }
 
+    // Set flag for if the additional thread should close
+    void set_close_thread() {
+        data_mut.lock();
+        ethernet_data::close_thread = true;
+        data_mut.unlock();
+    }
 
 private:
     std::mutex data_mut;
     bool data_ready{ false };
-    boost::array<uint8_t, 720> ethernet_data_buf{ NULL };
+    boost::array<uint8_t, 72> ethernet_data_buf{ NULL };
     size_t bytes_transferred{ 0 };
-    int data_sizes[10] = { 0,0,0,0,0,0,0,0,0,0 };
     std::string ipaddress{ "0.0.0.0" };
     int port{ 8889 };
     bool establish_ip{ false };
@@ -294,9 +245,8 @@ public:
     // Which in this case is the pointer to our ethernet data object
     void operator()(ethernet_data* data_obj)
     {
-        // Init vars
+        // Initialization Variables
         bool data_ready_flag = false;
-        //GAINS_TLM_PACKET local_packet;
         Client client_thread;
         std::string ipaddress;
         int port;
@@ -305,31 +255,34 @@ public:
         int count = 0;
         bool initiated = false;
         bool shouldCloseThread = false;
-        boost::array<uint8_t, 720> data_buff;
-        int data_size[10];
+        boost::array<uint8_t, 72> data_buff;
         size_t bytes_received = 0;
 
-        // Now loop infinitely in here unless some condition is met
-        // Typically instead of true you would be looking for the CTRL-C keybind to safely exit...
+        // Now loop infinitely in here until the thread is signaled to close - Note that receiving is a blocking operation so it cannot close until any message is received
         while (!shouldCloseThread)
         {
+            // Update bools
             data_obj->get_connection_established(connection_established);
             data_obj->get_shouldCloseThread(shouldCloseThread);
+
+            // Will run once thread connection is initialized in main.cpp
             if (connection_established) {
                 data_obj->get_ip(ipaddress, port);
                 count++;
+
+                // on first time will initiate the connection to the receiver
                 if (count == 1) {
                     initiated = client_thread.init(ipaddress, port);
                     std::cout << "Initiated = '" << initiated << "\n";
                 }
+
+                // Once receiver is initialized we can start receiving messages
                 if (initiated) {
                     data_obj->get_ready_flag(data_ready);
                     if (!data_ready) {
-                        //client_thread.Receiver(ipaddress, port, data_buff, data_size);
                         client_thread.Receiver(ipaddress, port, data_buff, bytes_received); // blocking function - should include a handler to stop this when closing window
 
                         // Now set the data in our thread safe object class that is shared between threads by copying the local packet
-                        //data_obj->set_data(data_buff, data_size);
                         data_obj->set_data(data_buff, bytes_received);
 
                         // Set the flag that the new data is ready
@@ -337,8 +290,8 @@ public:
                     }
                 }
                 else {
+                    // Catch if the connection is initiated in main but an exception is thrown
                     data_obj->set_connection_established(false);
-                    //count = 0;
                 }
             }
         }

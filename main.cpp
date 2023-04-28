@@ -53,7 +53,6 @@ int draw_trajectory(std::vector<std::vector<double>>data, Sphere dot, int step, 
 int draw_trajectory(std::vector<std::vector<double>>data, std::vector<std::vector<double>>pertubation, Sphere dot, int step, bool drawObject, float actualScale, int trajLengthMult, shader iconShaderProgram, shader lineShaderProgram, glm::mat4 model, glm::mat4 view, glm::mat4 proj, unsigned int VAO1, unsigned int VAO2, unsigned int VBO, glm::vec3 color);
 int draw_trajectory(float vert[150], Sphere dot, int step, bool drawObject, float actualScale, int trajLengthMult, shader iconShaderProgram, shader lineShaderProgram, glm::mat4 model, glm::mat4 view, glm::mat4 proj, unsigned int VAO1, unsigned int VAO2, unsigned int VBO, glm::vec3 color);
 
-
 int main()
 {
     // Initialize GLFW
@@ -230,7 +229,7 @@ int main()
     bool resetComms = false;
 
     // Initialize the local data struct in the stack because we just need it in the main function
-    boost::array<uint8_t, 720> receive_buffer;
+    boost::array<uint8_t, 72> receive_buffer;
     int receive_size_array[10];
     size_t receive_size;
     float receive_time_float;
@@ -369,6 +368,7 @@ int main()
     Eigen::VectorXd Xn = calc_CW_Xn(500000, pertubation);
     std::vector<std::vector<double>> PosVector = CW_SIM.run_CW_Sim_Moon(totTime, dt, dateEx, 500000, Xn);
     std::cout << "Created Data..." << std::endl;
+    int printCount = 0;
     /*for (size_t j = PosVector.size(); j-- > 0; ) {
         printf("\n %g %g %g;", PosVector.at(j).at(0), PosVector.at(j).at(1), PosVector.at(j).at(2));
     }*/
@@ -444,6 +444,12 @@ int main()
                     //std::cout << "Successfully read in the data packet. These are the contents of the TLM Packet: \n";
                     //print_GAINS_TLM_PACKET(receive_tlm_packet);
                     //headerData recvHdr = readHeader(receive_tlm_packet.FullHeader.SpacePacket.Hdr);
+                    printCount++;
+                    if (printCount == 10) {
+                        std::cout << "Position = " << receive_tlm_packet.position_x << "," << receive_tlm_packet.position_y << "," << receive_tlm_packet.position_z << ", Velocity = " <<
+                            receive_tlm_packet.velocity_x << "," << receive_tlm_packet.velocity_y << "," << receive_tlm_packet.velocity_z << std::endl;
+                        printCount = 0;
+                    }
                     if (received_data_size < 500) {
                         received_data.push_back({ receive_tlm_packet.FullHeader.Sec.Time,
                             receive_tlm_packet.position_x,receive_tlm_packet.position_y ,receive_tlm_packet.position_z,
@@ -467,9 +473,11 @@ int main()
                         received_data.at(received_data_index).at(5) = receive_tlm_packet.velocity_y;
                         received_data.at(received_data_index).at(6) = receive_tlm_packet.velocity_z;
                     }
+                    /*std::cout << received_data.at(received_data_size - 1).at(1) << "," << received_data.at(received_data_size - 1).at(2) << ","
+                     */   //<< received_data.at(received_data_size - 1).at(3) << "," << received_data.at(received_data_size - 1).at(4) << "," << received_data.at(received_data_size - 1).at(5) << "," << received_data.at(received_data_size - 1).at(6) << '\n';
                     /*std::cout << received_data.at(received_data_size - 1).at(0) << "," << received_data.at(received_data_size - 1).at(1) << "," << received_data.at(received_data_size - 1).at(2) << ","
-                        << received_data.at(received_data_size - 1).at(3) << "," << received_data.at(received_data_size - 1).at(4) << "," << received_data.at(received_data_size - 1).at(5) << "," << received_data.at(received_data_size - 1).at(6) << '\n';
-                    */
+                        << received_data.at(received_data_size - 1).at(3) << "," << received_data.at(received_data_size - 1).at(4) << "," << received_data.at(received_data_size - 1).at(5) << "," << received_data.at(received_data_size - 1).at(6) << '\n';*/
+
                 }
                 else if (receive_buffer[12] == 1) {
                     // receive star tracker packet
@@ -485,10 +493,10 @@ int main()
 
         // --- Communication Send ---
         if (shouldSendMessage) {
-            /*float input_float = currentFrame;
+            float input_float = currentFrame;
             std::cout << "Input float is '" << input_float << "'\nSending it to Sender Function...\n";
             Send_Float(input_float, teensy_ipaddress, teensy_port);
-            printf("Sent float at time: %f \n", currentFrame);*/
+            printf("Sent float at time: %f \n", currentFrame);
 
             //GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(1.1, 2.2, 3.3, 4.4, 5.5, 6.6, currentFrame, 0, 1, 0, 0, 0, 0);
             //headerData sendHdr = readHeader(tlm_packet.FullHeader.SpacePacket.Hdr);
@@ -501,19 +509,19 @@ int main()
             //Send_STAR_Packet(star_packet, teensy_ipaddress, teensy_port);
             //printf("Sent star tracker packet at time: %f \n", currentFrame);
 
-            //if (step_count < PosVector.size()) {
-            //   /* GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(PosVector.at(step_count).at(1), PosVector.at(step_count).at(2), PosVector.at(step_count).at(3),
-            //        PosVector.at(step_count).at(4), PosVector.at(step_count).at(5), PosVector.at(step_count).at(6), currentFrame, 0, 1, 0, 0, 0, 0);*/
-            //    GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(PosVector.at(step_count).at(0), PosVector.at(step_count).at(1), PosVector.at(step_count).at(2),
-            //        0, 0, 0, currentFrame, 0, 1, 0, 0, 0, 0);
-            //    Send_TLM_Packet(tlm_packet, teensy_ipaddress, teensy_port);
-            //    //printf("Sent tlm data packet at time: %f \n", currentFrame);
-            //    std::cout << "Stepcount = " << step_count << std::endl;
-            //    step_count++;
-            //}
-            //else {
-            //    step_count = 0;
-            //}
+            if (step_count < PosVector.size()) {
+               /* GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(PosVector.at(step_count).at(1), PosVector.at(step_count).at(2), PosVector.at(step_count).at(3),
+                    PosVector.at(step_count).at(4), PosVector.at(step_count).at(5), PosVector.at(step_count).at(6), currentFrame, 0, 1, 0, 0, 0, 0);*/
+                GAINS_TLM_PACKET tlm_packet = GAINS_TLM_PACKET_constructor(PosVector.at(step_count).at(0), PosVector.at(step_count).at(1), PosVector.at(step_count).at(2),
+                    0, 0, 0, currentFrame, 0, 1, 0, 0, 0, 0);
+                Send_TLM_Packet(tlm_packet, teensy_ipaddress, teensy_port);
+                //printf("Sent tlm data packet at time: %f \n", currentFrame);
+                std::cout << "Stepcount = " << step_count << std::endl;
+                step_count++;
+            }
+            else {
+                step_count = 0;
+            }
 
             shouldSendMessage = false;
         }

@@ -1,11 +1,12 @@
 /* CCSDS Space Protocol Packet Functions File
 * GAINS Senior Project Capstone Ground Software Backend
 * Authors: Brian Trybus, Cannon Palmer, Tucker Peyok, Ben McHugh
-* Purpose: This has functions help with using the CCSDS Space Packet Structs
+* Purpose: This has functions which help with using the CCSDS Space Packet Structs
 */
 
 #include "ccsds.h"
 
+// Write and compact data into a primary CCSDS header
 CCSDS_PriHdr_t writeHeader(int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag) {
 
     CCSDS_PriHdr_t header;
@@ -24,6 +25,7 @@ CCSDS_PriHdr_t writeHeader(int apID, bool secondHeader, bool type, int version, 
 
 }
 
+// Expand and print data from a compacted primary CCSDS header
 headerData readHeader(CCSDS_PriHdr_t hdr) {
 
     headerData header;
@@ -52,6 +54,7 @@ headerData readHeader(CCSDS_PriHdr_t hdr) {
 
 }
 
+// Construct and write data to a Telemetry Packet
 GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position_y, double position_z, double velocity_x, double velocity_y, double velocity_z, float time, int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag) {
 
     GAINS_TLM_PACKET tlmPacket;
@@ -75,6 +78,7 @@ GAINS_TLM_PACKET GAINS_TLM_PACKET_constructor(double position_x, double position
     return tlmPacket;
 }
 
+// Construct and write data to a Star Tracker Packet
 GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAngle2, double betaAngle3, double betaAngle4, float time, int apID, bool secondHeader, bool type, int version, int seqCount, int segFlag) {
 
     GAINS_STAR_PACKET starPacket;
@@ -96,7 +100,8 @@ GAINS_STAR_PACKET GAINS_STAR_PACKET_constructor(double betaAngle1, double betaAn
     return starPacket;
 }
 
-GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 720> recv_buffer) { 
+// Read data out of a buffer and put it into a Telemetry Packet
+GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 72> recv_buffer) { 
     // we need to program this to decode a buffer (an array of uint8_t) and put it into the SPP format
     // incoming buffer will be 72 bytes long (72 uint8_t). Data from buffer comes in Little Endian
     GAINS_TLM_PACKET data;
@@ -145,7 +150,8 @@ GAINS_TLM_PACKET read_TLM_Packet(boost::array<uint8_t, 720> recv_buffer) {
     return data;
 }
 
-GAINS_STAR_PACKET read_STAR_Packet(boost::array<uint8_t, 720> recv_buffer) { 
+// Read data out of a buffer and put it into a Star Tracker Packet
+GAINS_STAR_PACKET read_STAR_Packet(boost::array<uint8_t, 72> recv_buffer) { 
     // we need to program this to decode a buffer (an array of uint8_t) and put it into the SPP format
     // incoming buffer will be 72 bytes long (72 uint8_t). Data from buffer comes in Little Endian
     GAINS_STAR_PACKET data;
@@ -194,6 +200,7 @@ GAINS_STAR_PACKET read_STAR_Packet(boost::array<uint8_t, 720> recv_buffer) {
     return data;
 }
 
+// Prints contents of a Telemetry Packet
 void print_GAINS_TLM_PACKET(GAINS_TLM_PACKET tlm_packet) {
     std::cout << " --- Gains TLM Packet Contents --- " << std::endl;
 
@@ -221,6 +228,7 @@ void print_GAINS_TLM_PACKET(GAINS_TLM_PACKET tlm_packet) {
     std::cout << "Velocity Z = " << tlm_packet.velocity_z << std::endl;
 }
 
+// Prints contents of a Star Tracker Packet
 void print_GAINS_STAR_PACKET(GAINS_STAR_PACKET star_packet) {
     std::cout << " --- Gains STAR Packet Contents --- " << std::endl;
 
@@ -247,6 +255,8 @@ void print_GAINS_STAR_PACKET(GAINS_STAR_PACKET star_packet) {
     //std::cout << "Filler 1 = " << star_packet.filler1 << std::endl;
     //std::cout << "Filler 2 = " << star_packet.filler2 << std::endl;
 }
+
+// Save data from a 2D vector matrix into a file
 void save_data(std::vector<std::vector<double>> data, std::string file_name) {
     std::ofstream savefile;
     savefile.open(file_name);
@@ -266,6 +276,8 @@ void save_data(std::vector<std::vector<double>> data, std::string file_name) {
 
     std::cout << "saved data \n";
 }
+
+// Load data from a file into a 2D vector matrix
 std::vector<std::vector<double>> load_data(std::string file_name) {
     std::vector<std::vector<double>> output;
     double time, xp, yp, zp, xv, yv, zv;
@@ -278,11 +290,11 @@ std::vector<std::vector<double>> load_data(std::string file_name) {
         return output;
     }
     getline(loadfile, header, '\n');
-    for (;;) {          /* loop continually */
+    for (;;) {          /* loop continually until file is finished */
         loadfile >> time >> comma >> xp >> comma >> yp >> comma >> zp >> comma >> xv >> comma >> yv >> comma >> zv;
         if (loadfile.fail() || loadfile.eof())
             break;
-        std::cout << time << "," << xp << "," << yp << "," << zp << "," << xv << "," << yv << "," << zv << '\n';
+        //std::cout << time << "," << xp << "," << yp << "," << zp << "," << xv << "," << yv << "," << zv << '\n'; // Print read in contents of file
         output.push_back({ time,xp,yp,zp,xv,yv,zv });
         loadfile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }

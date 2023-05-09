@@ -1,6 +1,6 @@
 /* MAIN FRONTEND FILE
 * GAINS Senior Project Capstone Ground Software GUI Frontend
-* Authors: Derek Popich, Cannon Palmer, Brian Trybus, Alfredo Restrepo
+* Authors: Derek Popich, Cannon Palmer
 * Purpose: This is the main file for the Orbital Trajectory Estimation Software
 */
 
@@ -1005,8 +1005,8 @@ unsigned int loadTexture(unsigned char* image_data, int width, int height, int n
 }
 
 int drawPlanet(shader shaderProgram, unsigned int VAO, unsigned int texture, float scale, float planetScale, float rotation, float positions[3], glm::mat4 model, glm::mat4 view, glm::mat4 proj, bool posFromObject, int sphereIndexCount) {
-    // This is a working function to draw the rotating moon or earth. Since this function requires soo many inputs, it may be better if we can make a class instead
-
+    //Purpose: This function draws a planet specified by the inputs
+    // 
     // --- Draw the Planet ---
     shaderProgram.use();
     int modelLoc = glGetUniformLocation(shaderProgram.ID, "model");
@@ -1030,11 +1030,13 @@ int drawPlanet(shader shaderProgram, unsigned int VAO, unsigned int texture, flo
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, sphereIndexCount, GL_UNSIGNED_INT, (void*)0);
 
-    //return 1; // a return value seems to prevent plotting - but why?
+    //return 1; // returning a value seems to prevent plotting
 }
 
 void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, bool& show_reset, bool& resetComms, int sendIP[4], int& send_port, int receiveIP[4], int& receive_port, int window_width) {
-    // This function draws the comms portion of the GUI onto the current GUI. This enables user input for binding IPs and for sending and receiving
+    // Purpose: This function draws the comms portion of the GUI onto the current GUI. This enables user input for binding IPs and for sending and receiving
+
+    // Set up basic communications stuff
     if (ImGui::Button(" Initiate Receiver ")) {
         initiateIP = true;
     }
@@ -1047,6 +1049,7 @@ void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, bool& show_reset, b
         item_width = 1;
     }
 
+    // Provide functionality to change the send Ip Address and port
     ImGui::Text("Teensy IpAddress");
     ImGui::PushItemWidth(item_width);
     ImGui::InputInt("S 1", &sendIP[0]);
@@ -1061,6 +1064,7 @@ void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, bool& show_reset, b
     ImGui::InputInt("S 4", &sendIP[3]);
     ImGui::InputInt("Teensy Port", &send_port);
 
+    // Provide functionality to change the receiving Ip Address and port
     ImGui::Text("Receiving IpAddress");
     ImGui::PushItemWidth(item_width);
     ImGui::InputInt("R 1", &receiveIP[0]);
@@ -1077,7 +1081,7 @@ void drawCommsGUI(bool& shouldSendMessage, bool& initiateIP, bool& show_reset, b
 }
 
 int calcGUI_RefLen(ImDrawList* myDrawList, int simMode, int screen_width, int screen_height, float actualScale) {
-    // This function calculates the reference length that is shown in the bottom right of the GUI
+    // Purpose: This function calculates the reference length that is shown in the bottom right of the GUI
     // It also draws the text for this reference line at the middle point of the reference line
     int ref_length = 1e6;
     if (simMode == 0 || simMode == 1) {
@@ -1140,6 +1144,7 @@ int calcGUI_RefLen(ImDrawList* myDrawList, int simMode, int screen_width, int sc
 }
 
 Eigen::VectorXd calc_CW_Xn(float orbit_alt, float A0) {
+    // Purpose: This function calculates the initial state vector of the Clohessey Wiltshire state space model
     Eigen::VectorXd Xn(6);
 
     float mu_moon = 4.9048695e12; // Gravitational parameter of the Moon[m ^ 3 s ^ -2]
@@ -1147,12 +1152,13 @@ Eigen::VectorXd calc_CW_Xn(float orbit_alt, float A0) {
     float orbit_rad = orbit_alt + rad_moon; // Orbital radius of the chief[m]
     float n_mm = sqrt(mu_moon / (pow(orbit_rad, 3))); // Mean motion of the Chief around the Moon[rad / s]
 
-    double alpha = (0.0 * M_PI) / 180.0;// Phase Angle Alpha of Circular Orbit
-    double x_0 = A0 * cos(alpha);// Initial X Position[m] Hill Frame
-    double y_0 = -2.0 * A0 * sin(alpha);// Initial Y Position[m] Hill Frame
-    double x_dot_0 = -x_0 * n_mm * sin(alpha);// Initial Orbital X velocity[m / s] Hill Frame
-    double y_dot_0 = -2.0 * n_mm * x_0 * cos(alpha);// Initial Orbital Y velocity[m / s] Hill Frame
+    double alpha = (0.0 * M_PI) / 180.0; // Phase Angle Alpha of Circular Orbit
+    double x_0 = A0 * cos(alpha); // Initial X Position[m] Hill Frame
+    double y_0 = -2.0 * A0 * sin(alpha); // Initial Y Position[m] Hill Frame
+    double x_dot_0 = -x_0 * n_mm * sin(alpha); // Initial Orbital X velocity[m / s] Hill Frame
+    double y_dot_0 = -2.0 * n_mm * x_0 * cos(alpha); // Initial Orbital Y velocity[m / s] Hill Frame
 
+    // Assign the variables to the output state
     Xn(0) = x_0;
     Xn(1) = y_0;
     Xn(2) = 0;
@@ -1164,21 +1170,24 @@ Eigen::VectorXd calc_CW_Xn(float orbit_alt, float A0) {
 }
 
 std::vector<std::vector<double>> CW_Circle_Vec(float orbit_alt, float dt, float t2) {
+    // Purpose: This function calculates points on a chief Clohessey Wiltshire orbit for a given amount of time
+
     std::vector<std::vector<double>> pos_vector;
 
-    float mu_moon = 4.9048695e12;// Gravitational parameter of the Moon[m ^ 3 s ^ -2]
-    float rad_moon = 1737447.78;// Radius of the Moon[m]
-    float orbit_rad = orbit_alt + rad_moon;// Orbital radius of the chief[m]
-    float n_mm = sqrt(mu_moon / pow(orbit_rad, 3));// Mean motion of the Chief around the Moon[rad / s]
+    float mu_moon = 4.9048695e12; // Gravitational parameter of the Moon[m ^ 3 s ^ -2]
+    float rad_moon = 1737447.78; // Radius of the Moon[m]
+    float orbit_rad = orbit_alt + rad_moon; // Orbital radius of the chief[m]
+    float n_mm = sqrt(mu_moon / pow(orbit_rad, 3)); // Mean motion of the Chief around the Moon[rad / s]
 
     float T = 2 * M_PI / n_mm;// Chief Orbital Period[s]
-    std::cout << "Chief Orbit Period = " << T << std::endl;
+    //std::cout << "Chief Orbit Period = " << T << std::endl;
     float df = (360.0 / T) / dt;// True anomaly step[deg / step]
-    std::cout << "True Anomaly Step (deg/step) = " << df << std::endl;
+    //std::cout << "True Anomaly Step (deg/step) = " << df << std::endl;
     float f = 0;
     float chief_V = sqrt(mu_moon / orbit_rad);// Total chief velocity[m / s]
     float t = 0;
 
+    // Iteratively calculate each point of the orbit
     int i = 0;
     for (t; t < t2; t = t + dt) {
         f = (M_PI / 180) * fmod(df * t, 360.0);// N true anomaly angles[deg]
@@ -1190,10 +1199,20 @@ std::vector<std::vector<double>> CW_Circle_Vec(float orbit_alt, float dt, float 
 }
 
 int draw_trajectory(std::vector<std::vector<double>>data, Sphere dot, int step, bool drawObject, float actualScale, int trajLengthMult, shader iconShaderProgram, shader lineShaderProgram, glm::mat4 model, glm::mat4 view, glm::mat4 proj, unsigned int VAO1, unsigned int VAO2, unsigned int VBO, glm::vec3 color) {
+    // Purpose: This function draws a 2D trajectory with an icon to represent a satellite
+    // This overloaded version draws data using a single double vector
+    
+    // Initialize variables
     const int lineCount = 50;
     float tempVert[3 * lineCount];
     int currentStep = step % (data.size());
     size_t obj_temp_step = 0;
+    int modelLoc;
+    int viewLoc;
+    int projectionLoc;
+    glm::mat4 trans;
+
+    // Fill plotting vector with the desired data points to plot
     for (int i = 0; i < lineCount; i = i + 1) {
         obj_temp_step = (i * (trajLengthMult)+currentStep);
         if (obj_temp_step < (data.size())) {
@@ -1210,15 +1229,9 @@ int draw_trajectory(std::vector<std::vector<double>>data, Sphere dot, int step, 
             tempVert[i * 3 + 2] = float(data.at(obj_temp_step).at(2));
         }
     }
-    //std::cout << "tempVert[0] = " << (1/ actualScale) * tempVert[0] << ", tempVert[1] = " << (1 / actualScale) * tempVert[1] << ", tempVert[2] = " << (1 / actualScale) * tempVert[2] << std::endl;
-
-    int modelLoc;
-    int viewLoc;
-    int projectionLoc;
-    glm::mat4 trans;
 
     if (drawObject) {
-        // Draw the "object"
+        // Draw the satellite icon
         iconShaderProgram.use();
         modelLoc = glGetUniformLocation(iconShaderProgram.ID, "model");
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -1234,7 +1247,8 @@ int draw_trajectory(std::vector<std::vector<double>>data, Sphere dot, int step, 
         glBindVertexArray(VAO2);
         glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
     }
-    //draw the object trajectory
+
+    //draw the object trajectory line
     glBindVertexArray(VAO1);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(tempVert), tempVert, GL_STATIC_DRAW);
@@ -1253,14 +1267,24 @@ int draw_trajectory(std::vector<std::vector<double>>data, Sphere dot, int step, 
     lineShaderProgram.setMat4("transform", trans);
     glDrawArrays(GL_LINE_STRIP, 0, lineCount);
 
-    //return 0;
+    //return 0; // Returning a value prevents the function from drawing to using the render engine
 }
 
 int draw_trajectory(std::vector<std::vector<double>>data, std::vector<std::vector<double>>pertubation, Sphere dot, int step, bool drawObject, float actualScale, int trajLengthMult, shader iconShaderProgram, shader lineShaderProgram, glm::mat4 model, glm::mat4 view, glm::mat4 proj, unsigned int VAO1, unsigned int VAO2, unsigned int VBO, glm::vec3 color) {
+    // Purpose: This function draws a 2D trajectory with an icon to represent a satellite
+    // This overloaded version adds a pertubation to the data double vector and then plots it
+    
+    // Initialize variables
     const int lineCount = 50;
     float tempVert[3 * lineCount];
     int currentStep = step % (data.size());
     size_t obj_temp_step = 0;
+    int modelLoc;
+    int viewLoc;
+    int projectionLoc;
+    glm::mat4 trans;
+
+    // Fill plotting vector with the desired data points to plot
     for (int i = 0; i < lineCount; i = i + 1) {
         obj_temp_step = (i * (trajLengthMult)+currentStep);
         if (obj_temp_step < (data.size())) {
@@ -1277,15 +1301,9 @@ int draw_trajectory(std::vector<std::vector<double>>data, std::vector<std::vecto
             tempVert[i * 3 + 2] = float(data.at(obj_temp_step).at(2) + pertubation.at(obj_temp_step).at(2));
         }
     }
-    //std::cout << "tempVert[0] = " << (1/ actualScale) * tempVert[0] << ", tempVert[1] = " << (1 / actualScale) * tempVert[1] << ", tempVert[2] = " << (1 / actualScale) * tempVert[2] << std::endl;
-
-    int modelLoc;
-    int viewLoc;
-    int projectionLoc;
-    glm::mat4 trans;
 
     if (drawObject) {
-        // Draw the "object"
+        // Draw the satellite icon
         iconShaderProgram.use();
         modelLoc = glGetUniformLocation(iconShaderProgram.ID, "model");
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -1301,7 +1319,8 @@ int draw_trajectory(std::vector<std::vector<double>>data, std::vector<std::vecto
         glBindVertexArray(VAO2);
         glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
     }
-    //draw the object trajectory
+
+    //draw the object trajectory line
     glBindVertexArray(VAO1);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(tempVert), tempVert, GL_STATIC_DRAW);
@@ -1320,10 +1339,14 @@ int draw_trajectory(std::vector<std::vector<double>>data, std::vector<std::vecto
     lineShaderProgram.setMat4("transform", trans);
     glDrawArrays(GL_LINE_STRIP, 0, lineCount);
 
-    //return 0;
+    //return 0; // Returning a value prevents the function from drawing to using the render engine
 }
 
 int draw_trajectory(float vert[150], Sphere dot, int step, bool drawObject, float actualScale, int trajLengthMult, shader iconShaderProgram, shader lineShaderProgram, glm::mat4 model, glm::mat4 view, glm::mat4 proj, unsigned int VAO1, unsigned int VAO2, unsigned int VBO, glm::vec3 color) {
+    // Purpose: This function draws a 2D trajectory with an icon to represent a satellite
+    // This overloaded version draws a given vector of data while reducing the memory load of the CPU which increases performance considerably
+    
+    // Initialize variables
     int modelLoc;
     int viewLoc;
     int projectionLoc;
@@ -1331,7 +1354,7 @@ int draw_trajectory(float vert[150], Sphere dot, int step, bool drawObject, floa
     int lineCount = 50;
 
     if (drawObject) {
-        // Draw the "object"
+        // Draw the satellite icon
         iconShaderProgram.use();
         modelLoc = glGetUniformLocation(iconShaderProgram.ID, "model");
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -1347,7 +1370,8 @@ int draw_trajectory(float vert[150], Sphere dot, int step, bool drawObject, floa
         glBindVertexArray(VAO2);
         glDrawElements(GL_TRIANGLES, dot.getIndexCount(), GL_UNSIGNED_INT, (void*)0);
     }
-    //draw the object trajectory
+
+    //draw the object trajectory line
     glBindVertexArray(VAO1);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, 4 * 3 * lineCount, vert, GL_STATIC_DRAW);
@@ -1365,4 +1389,6 @@ int draw_trajectory(float vert[150], Sphere dot, int step, bool drawObject, floa
     trans = glm::scale(trans, (1 / actualScale) * glm::vec3(1, 1, 1));
     lineShaderProgram.setMat4("transform", trans);
     glDrawArrays(GL_LINE_STRIP, 0, lineCount);
+
+    // return 0; // Returning a value prevents the function from drawing to using the render engine
 }

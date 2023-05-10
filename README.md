@@ -19,6 +19,7 @@ git clone https://github.com/GAINS-ASEN23/Ground-Software.git
 When compiled, the SPICE databases have to be placed in the x64 folder. Download the de440.bsp and naif0012.tls from the following links.
 
 https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/
+
 https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/
 
 ## Usage

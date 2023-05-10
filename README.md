@@ -26,6 +26,8 @@ https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/
 To run the software, click on GUI.exe in the x64 folder. If everything is correct, the software should start right up. 
 
 
+There are 3 modes to the ground software. The first is Sim Mode. This mode is used to predict the trajectory of a spacecraft around the moon. The Display mode and Test modes are specific to the project this software was used for. They receive live data from the INS and display the appropiate changes to the software. To communicate with the INS, there are UDP address blocks used to select IP. The communication protocol uses UDP and the CCSDS space packed protocol combined. 
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first

@@ -17,13 +17,20 @@ Clone the repository and use Microsoft Visual Studio 2022 and newer to compile.
 git clone https://github.com/GAINS-ASEN23/Ground-Software.git
 ```
 
-When compiled, the SPICE databases have to be placed in the Ground-Software/x64 folder. Download the de440.bsp and naif0012.tls from the following links.
+When first compiled, the SPICE databases have to be placed in the Ground-Software/x64 folder. Download the de440.bsp and naif0012.tls from the following links.
 
 https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/
 
 https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/
 
+## Compiling
+
+The code must be compiled after any edits or changes. The GUI.exe will be regenerated with each compilation, so a compile is necessary for GUI.exe to reflect any code changes.
+
+How to compile using Visual Studio 2022: Under "Solution Explorer", right click on "Solution 'groundSoftware'" and click "build" for small updates, or click "rebuild" if large changes have been made to the code or if error occur.
+
 ## Usage
+
 To run the software, click on GUI.exe in the x64 folder. If everything is correct, the software should start right up. 
 
 
@@ -39,3 +46,9 @@ Please make sure to update tests as appropriate.
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
+
+## Frontend Functionality
+
+## Backend Functionality
+
+
